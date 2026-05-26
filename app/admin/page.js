@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false)
@@ -60,7 +60,6 @@ export default function AdminPage() {
     tabs: { display:'flex', gap:8, marginBottom:'1.5rem' },
     tab: (active) => ({ border: active?'none':'1.5px solid #e0ddd5', background: active?'#2C2C2A':'#fff', color: active?'#fff':'#2C2C2A', borderRadius:20, padding:'7px 18px', fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:500, cursor:'pointer' }),
     card: { background:'#fff', border:'1.5px solid #e0ddd5', borderRadius:12, padding:'1.25rem', marginBottom:12 },
-    badge: { background:'#FAEEDA', color:'#BA7517', fontSize:11, fontWeight:700, padding:'3px 8px', borderRadius:10, textTransform:'uppercase', marginLeft:8 },
     cardTitle: { fontFamily:"'Playfair Display',serif", fontSize:17, fontWeight:700, color:'#2C2C2A', marginBottom:4 },
     meta: { fontSize:13, color:'#888780', marginBottom:8, lineHeight:1.8 },
     actions: { display:'flex', gap:8, flexWrap:'wrap', marginTop:12, paddingTop:12, borderTop:'1px solid #e0ddd5' },
@@ -72,5 +71,72 @@ export default function AdminPage() {
 
   if (!authed) return (
     <div style={s.page}>
-      <nav style={s.nav}><span style={s.navTitle}>YourKidCal Admin</span></nav>
-      <div style={
+      <nav style={s.nav}>
+        <span style={s.navTitle}>YourKidCal Admin</span>
+      </nav>
+      <div style={s.loginWrap}>
+        <h2 style={s.h2}>Admin Login</h2>
+        <p style={{ fontSize:14, color:'#888780', marginBottom:'1.5rem' }}>Enter your admin password to manage listings.</p>
+        <input
+          style={s.input}
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && login()}
+        />
+        {error && <div style={{ color:'#D85A30', fontSize:13, marginBottom:10 }}>{error}</div>}
+        <button style={s.btn()} onClick={login}>Log In</button>
+      </div>
+    </div>
+  )
+
+  return (
+    <div style={s.page}>
+      <nav style={s.nav}>
+        <span style={s.navTitle}>YourKidCal Admin</span>
+        <div style={{ display:'flex', gap:12, alignItems:'center' }}>
+          <span style={{ color:'#888780', fontSize:13 }}>{listings.length} total listings</span>
+          <button style={s.btn('#888780')} onClick={() => setAuthed(false)}>Log Out</button>
+        </div>
+      </nav>
+      <div style={s.main}>
+        <div style={s.tabs}>
+          {['pending','approved','rejected'].map(t => (
+            <button key={t} style={s.tab(tab===t)} onClick={() => setTab(t)}>
+              {t.charAt(0).toUpperCase()+t.slice(1)} ({listings.filter(l => l.status===t).length})
+            </button>
+          ))}
+          <button style={{ ...s.btn(), marginLeft:'auto' }} onClick={loadListings}>↻ Refresh</button>
+        </div>
+
+        {loading && (
+          <div style={{ textAlign:'center', padding:'3rem', color:'#888780' }}>Loading...</div>
+        )}
+
+        {!loading && filtered.length === 0 && (
+          <div style={{ textAlign:'center', padding:'3rem', color:'#888780' }}>
+            <div style={{ fontSize:32, marginBottom:8 }}>✓</div>
+            No {tab} listings.
+          </div>
+        )}
+
+        {!loading && filtered.map(l => (
+          <div key={l.id} style={s.card}>
+            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
+              <div>
+                <span style={{ fontSize:11, fontWeight:700, background:'#E6F1FB', color:'#185FA5', padding:'3px 8px', borderRadius:10, textTransform:'uppercase' }}>{l.category}</span>
+                <span style={{ fontSize:11, fontWeight:700, background:'#EAF3DE', color:'#3B6D11', padding:'3px 8px', borderRadius:10, marginLeft:6 }}>{l.source}</span>
+              </div>
+              <span style={{ fontSize:12, color:'#888780' }}>Submitted {new Date(l.created_at).toLocaleDateString()}</span>
+            </div>
+            <div style={{ ...s.cardTitle, marginTop:10 }}>{l.title}</div>
+            <div style={s.meta}>
+              <strong>Org:</strong> {l.org_name} &nbsp;·&nbsp;
+              <strong>Location:</strong> {l.location} &nbsp;·&nbsp;
+              <strong>Ages:</strong> {l.ages}<br/>
+              <strong>Deadline:</strong> {l.deadline} &nbsp;·&nbsp;
+              <strong>Start:</strong> {l.start_date||'—'} &nbsp;·&nbsp;
+              <strong>Cost:</strong> {l.cost_free ? 'Free' : '$'+l.cost}<br/>
+              {l.registration_url && (
+                <><strong>Link:</strong> <a href={l.registration_url} target="_blank" rel="noopener noreferrer" style={{ color:'#185FA5' }}>{l.registration_url}</a><br/>
