@@ -47,7 +47,7 @@ export default function HomeClient({ listings }) {
   const [saved, setSaved] = useState([])
   const [calModal, setCalModal] = useState(null)
   const [submitOpen, setSubmitOpen] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
+  const [submitted, setSubmitted] = useState(false) const [hidePast, setHidePast] = useState(true)
   const today = new Date()
   const [calMonth, setCalMonth] = useState(today.getMonth())
   const [calYear, setCalYear] = useState(today.getFullYear())
@@ -347,9 +347,9 @@ export default function HomeClient({ listings }) {
 
           {/* Upcoming deadlines list */}
           <div style={{marginTop:'2rem'}}>
-            <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:20,marginBottom:'1rem'}}>All Upcoming Deadlines</h3>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1rem'}}>   <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:20}}>All Deadlines</h3>   <button     style={{background:hidePast?'#2C2C2A':'#fff',color:hidePast?'#fff':'#2C2C2A',border:'1.5px solid #e0ddd5',borderRadius:20,padding:'6px 14px',fontSize:13,fontWeight:500,cursor:'pointer'}}     onClick={() => setHidePast(h => !h)}>     {hidePast ? '👁 Show Past' : '🙈 Hide Past'}   </button> </div>
             {listings
-              .filter(l => daysUntil(l.deadline) >= 0)
+              .filter(l => hidePast ? daysUntil(l.deadline) >= 0 : true)
               .sort((a,b) => new Date(a.deadline)-new Date(b.deadline))
               .map(l => {
                 const days = daysUntil(l.deadline)
