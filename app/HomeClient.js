@@ -56,8 +56,14 @@ export default function HomeClient({ listings }) {
     description:'', cost:'', cost_free:false, deadline:'',
     start_date:'', end_date:'', registration_url:'', email:''
   })
-
-  const filtered = listings.filter(l => {
+const sorted = [...listings].sort((a, b) => {
+  const dA = daysUntil(a.deadline)
+  const dB = daysUntil(b.deadline)
+  if (dA >= 0 && dB >= 0) return dA - dB
+  if (dA < 0 && dB < 0) return dB - dA
+  return dA >= 0 ? -1 : 1
+})
+  const filtered = sorted.filter(l => {
     const matchCat = filter === 'All' || l.category.toLowerCase() === filter.toLowerCase()
     const matchLoc = location === 'All Areas' || (l.location||'').toLowerCase().includes(location.toLowerCase()) || (location === 'Countywide' && (l.location||'').toLowerCase().includes('countywide'))
     const q = search.toLowerCase()
