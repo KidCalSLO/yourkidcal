@@ -139,4 +139,19 @@ export default function AdminPage() {
               <strong>Start:</strong> {l.start_date||'—'} &nbsp;·&nbsp;
               <strong>Cost:</strong> {l.cost_free ? 'Free' : '$'+l.cost}<br/>
               {l.registration_url && (
-                <><strong>Link:</strong> <a href={l.registration_url} target="_blank" rel="noopener noreferrer" style={{ color:'#185FA5' }}>{l.registration_url}</a><br/>
+                <><strong>Link:</strong> <a href={l.registration_url} target="_blank" rel="noopener noreferrer" style={{ color:'#185FA5' }}>{l.registration_url}</a><br/></>
+              )}
+              {l.description && <><strong>Description:</strong> {l.description}</>}
+            </div>
+            <div style={s.actions}>
+              {l.status !== 'approved' && <button style={s.approveBtn} onClick={() => updateStatus(l.id, 'approved')}>✓ Approve</button>}
+              {l.status !== 'pending' && <button style={s.pendingBtn} onClick={() => updateStatus(l.id, 'pending')}>↩ Pending</button>}
+              {l.status !== 'rejected' && <button style={s.rejectBtn} onClick={() => updateStatus(l.id, 'rejected')}>✕ Reject</button>}
+              <button style={s.deleteBtn} onClick={() => deleteListing(l.id)}>Delete</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
