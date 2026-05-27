@@ -267,22 +267,22 @@ export default function HomeClient({listings}) {
         <>
           {/* FILTER ROWS */}
 <div style={{background:'#fff',borderBottom:'1.5px solid #e0ddd5'}}>
-  <div style={{display:'flex',gap:6,overflowX:'auto',padding:'.5rem 1rem',alignItems:'center',WebkitOverflowScrolling:'touch',msOverflowStyle:'none',scrollbarWidth:'none'}} className="filter-scroll">
-    <span style={s.filterLabel}>Type</span>
+  <div className="filter-scroll" style={{padding:'.5rem 1rem',borderBottom:'1px solid #f0ede6'}}>
+    <span style={{...s.filterLabel, display:'inline-flex', alignItems:'center', marginRight:6}}>Type</span>
     {CATEGORIES.map(cat=>(
-      <button key={cat} style={s.chip(filter===cat)} onClick={()=>setFilter(cat)}>{cat}</button>
+      <button key={cat} style={{...s.chip(filter===cat), marginRight:6}} onClick={()=>setFilter(cat)}>{cat}</button>
     ))}
   </div>
-  <div style={{display:'flex',gap:6,overflowX:'auto',padding:'.35rem 1rem',alignItems:'center',WebkitOverflowScrolling:'touch',msOverflowStyle:'none',scrollbarWidth:'none',borderTop:'1px solid #f0ede6'}} className="filter-scroll">
-    <span style={s.filterLabel}>Gender</span>
+  <div className="filter-scroll" style={{padding:'.35rem 1rem',borderBottom:'1px solid #f0ede6'}}>
+    <span style={{...s.filterLabel, display:'inline-flex', alignItems:'center', marginRight:6}}>Gender</span>
     {[['all','All'],['male','Boys'],['female','Girls']].map(([val,label])=>(
-      <button key={val} style={s.chip(gender===val,'#D85A30')} onClick={()=>setGender(val)}>{label}</button>
+      <button key={val} style={{...s.chip(gender===val,'#D85A30'), marginRight:6}} onClick={()=>setGender(val)}>{label}</button>
     ))}
   </div>
-  <div style={{display:'flex',gap:6,overflowX:'auto',padding:'.35rem 1rem .5rem',alignItems:'center',WebkitOverflowScrolling:'touch',msOverflowStyle:'none',scrollbarWidth:'none',borderTop:'1px solid #f0ede6'}} className="filter-scroll">
-    <span style={s.filterLabel}>Area</span>
+  <div className="filter-scroll" style={{padding:'.35rem 1rem .5rem'}}>
+    <span style={{...s.filterLabel, display:'inline-flex', alignItems:'center', marginRight:6}}>Area</span>
     {LOCATIONS.map(loc=>(
-      <button key={loc} style={s.chip(location===loc,'#185FA5')} onClick={()=>setLocation(loc)}>{loc}</button>
+      <button key={loc} style={{...s.chip(location===loc,'#185FA5'), marginRight:6}} onClick={()=>setLocation(loc)}>{loc}</button>
     ))}
   </div>
 </div>
