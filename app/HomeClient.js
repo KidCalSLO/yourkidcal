@@ -78,11 +78,29 @@ export default function HomeClient({listings}) {
   })
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
+  const check = () => setIsMobile(window.innerWidth < 640)
+  check()
+  window.addEventListener('resize', check)
+  return () => window.removeEventListener('resize', check)
+}, [])
+
+useEffect(() => {
+  const anyOpen = notifyOpen || submitOpen || !!calModal
+  if (anyOpen) {
+    const scrollY = window.scrollY
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.width = '100%'
+    document.body.style.overflowY = 'scroll'
+  } else {
+    const scrollY = document.body.style.top
+    document.body.style.position = ''
+    document.body.style.top = ''
+    document.body.style.width = ''
+    document.body.style.overflowY = ''
+    if (scrollY) window.scrollTo(0, parseInt(scrollY || '0') * -1)
+  }
+}, [notifyOpen, submitOpen, calModal])
 
   const sorted = [...listings].sort((a,b) => {
     const dA = daysUntil(a.deadline)
