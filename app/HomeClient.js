@@ -5,19 +5,19 @@ const CATEGORIES = ['All','Camp','School','Sport','Daycare','Rec','Arts']
 const LOCATIONS = ['All Areas','San Luis Obispo','Arroyo Grande','Paso Robles','Atascadero','Morro Bay','Nipomo','Pismo Beach','Cambria','Countywide']
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+const AGE_PRESETS = [{label:'All Ages',min:0,max:18}]
 
 const BADGE = {
-  camp:    { bg:'#EAF3DE', color:'#3B6D11' },
-  school:  { bg:'#E6F1FB', color:'#185FA5' },
-  sport:   { bg:'#FAECE7', color:'#D85A30' },
-  daycare: { bg:'#FAEEDA', color:'#BA7517' },
-  rec:     { bg:'#E1F5EE', color:'#0F6E56' },
-  arts:    { bg:'#EEEDFE', color:'#534AB7' },
+  camp:    {bg:'#EAF3DE',color:'#3B6D11'},
+  school:  {bg:'#E6F1FB',color:'#185FA5'},
+  sport:   {bg:'#FAECE7',color:'#D85A30'},
+  daycare: {bg:'#FAEEDA',color:'#BA7517'},
+  rec:     {bg:'#E1F5EE',color:'#0F6E56'},
+  arts:    {bg:'#EEEDFE',color:'#534AB7'},
 }
-
 const CAT_COLORS = {
-  camp:'#3B6D11', school:'#185FA5', sport:'#D85A30',
-  daycare:'#BA7517', rec:'#0F6E56', arts:'#534AB7'
+  camp:'#3B6D11',school:'#185FA5',sport:'#D85A30',
+  daycare:'#BA7517',rec:'#0F6E56',arts:'#534AB7'
 }
 
 function daysUntil(dateStr) {
@@ -32,59 +32,83 @@ function urgencyColor(days) {
 }
 function formatDate(str) {
   if (!str) return null
-  return new Date(str).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })
+  return new Date(str).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
 }
 function formatDateShort(str) {
   if (!str) return null
-  return new Date(str).toLocaleDateString('en-US', { month:'short', day:'numeric' })
+  return new Date(str).toLocaleDateString('en-US',{month:'short',day:'numeric'})
+}
+function parseAgeRange(agesStr) {
+  if (!agesStr) return {min:0,max:18}
+  const clean = agesStr.replace(/\s/g,'').replace('mo','').replace('wk','')
+  const parts = clean.split(/[-–]/)
+  const min = parseInt(parts[0]) || 0
+  const max = parseInt(parts[1]) || min
+  return {min, max}
 }
 
-export default function HomeClient({ listings }) {
+export default function HomeClient({listings}) {
   const [tab, setTab] = useState('browse')
   const [filter, setFilter] = useState('All')
   const [location, setLocation] = useState('All Areas')
+  const [gender, setGender] = useState('all')
+  const [ageMin, setAgeMin] = useState(0)
+  const [ageMax, setAgeMax] = useState(18)
   const [search, setSearch] = useState('')
   const [saved, setSaved] = useState([])
   const [calModal, setCalModal] = useState(null)
   const [submitOpen, setSubmitOpen] = useState(false)
-  const [submitted, setSubmitted] = useState(false) 
+  const [submitted, setSubmitted] = useState(false)
   const [hidePast, setHidePast] = useState(true)
+  const [notifyOpen, setNotifyOpen] = useState(false)
+  const [notifySubmitted, setNotifySubmitted] = useState(false)
+  const [notifyForm, setNotifyForm] = useState({
+    email:'', name:'',
+    categories:[], locations:[],
+    age_min:0, age_max:18,
+    notify_new:true, notify_deadline_7:true, notify_deadline_30:false
+  })
   const today = new Date()
   const [calMonth, setCalMonth] = useState(today.getMonth())
   const [calYear, setCalYear] = useState(today.getFullYear())
   const [form, setForm] = useState({
-    title:'', org_name:'', category:'Camp', ages:'', location:'',
-    description:'', cost:'', cost_free:false, deadline:'',
-    start_date:'', end_date:'', registration_url:'', email:''
+    title:'',org_name:'',category:'Camp',ages:'',location:'',
+    description:'',cost:'',cost_free:false,deadline:'',
+    start_date:'',end_date:'',registration_url:'',email:''
   })
-const sorted = [...listings].sort((a, b) => {
-  const dA = daysUntil(a.deadline)
-  const dB = daysUntil(b.deadline)
-  if (dA >= 0 && dB >= 0) return dA - dB
-  if (dA < 0 && dB < 0) return dB - dA
-  return dA >= 0 ? -1 : 1
-})
+
+  const sorted = [...listings].sort((a,b) => {
+    const dA = daysUntil(a.deadline)
+    const dB = daysUntil(b.deadline)
+    if (dA >= 0 && dB >= 0) return dA - dB
+    if (dA < 0 && dB < 0) return dB - dA
+    return dA >= 0 ? -1 : 1
+  })
+
   const filtered = sorted.filter(l => {
     const matchCat = filter === 'All' || l.category.toLowerCase() === filter.toLowerCase()
-    const matchLoc = location === 'All Areas' || (l.location||'').toLowerCase().includes(location.toLowerCase()) || (location === 'Countywide' && (l.location||'').toLowerCase().includes('countywide'))
+    const matchLoc = location === 'All Areas' || (l.location||'').toLowerCase().includes(location.toLowerCase())
+    const matchGender = gender === 'all' || (l.gender||'both') === 'both' || (l.gender||'both') === gender
+    const {min, max} = parseAgeRange(l.ages)
+    const matchAge = min <= ageMax && max >= ageMin
     const q = search.toLowerCase()
     const matchQ = !q || l.title.toLowerCase().includes(q) || l.org_name.toLowerCase().includes(q) || (l.location||'').toLowerCase().includes(q)
-    return matchCat && matchLoc && matchQ
+    return matchCat && matchLoc && matchGender && matchAge && matchQ
   })
 
   function toggleSave(l) {
-    setSaved(s => s.find(x => x.id === l.id) ? s.filter(x => x.id !== l.id) : [...s, l])
+    setSaved(s => s.find(x => x.id===l.id) ? s.filter(x => x.id!==l.id) : [...s,l])
   }
-  function isSaved(id) { return !!saved.find(x => x.id === id) }
+  function isSaved(id) {return !!saved.find(x => x.id===id)}
 
-  function downloadIcs(listings_to_export) {
-    const events = listings_to_export.map(l => {
+  function downloadIcs(ls) {
+    const events = ls.map(l => {
       const d = l.deadline.replace(/-/g,'')
       return `BEGIN:VEVENT\nSUMMARY:Deadline: ${l.title}\nDTSTART;VALUE=DATE:${d}\nDTEND;VALUE=DATE:${d}\nDESCRIPTION:Register at ${l.registration_url||''} — ${l.org_name}\nLOCATION:${l.location||'SLO County'}\nEND:VEVENT`
     }).join('\n')
     const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//YourKidCal//SLO//EN\n${events}\nEND:VCALENDAR`
     const a = document.createElement('a')
-    a.href = URL.createObjectURL(new Blob([ics], { type:'text/calendar' }))
+    a.href = URL.createObjectURL(new Blob([ics],{type:'text/calendar'}))
     a.download = 'yourkidcal-deadlines.ics'
     a.click()
   }
@@ -95,82 +119,91 @@ const sorted = [...listings].sort((a, b) => {
   }
 
   async function handleSubmit() {
-    const res = await fetch('/api/submit', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(form)
-    })
+    const res = await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(form)})
     if (res.ok) setSubmitted(true)
   }
 
-  // Calendar helpers
-  function getCalDays() {
-    const firstDay = new Date(calYear, calMonth, 1).getDay()
-    const daysInMonth = new Date(calYear, calMonth+1, 0).getDate()
-    return { firstDay, daysInMonth }
+  async function handleNotifySubmit() {
+    const res = await fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(notifyForm)})
+    if (res.ok) setNotifySubmitted(true)
   }
 
+  function toggleNotifyCat(cat) {
+    setNotifyForm(f => ({
+      ...f,
+      categories: f.categories.includes(cat) ? f.categories.filter(c=>c!==cat) : [...f.categories,cat]
+    }))
+  }
+  function toggleNotifyLoc(loc) {
+    setNotifyForm(f => ({
+      ...f,
+      locations: f.locations.includes(loc) ? f.locations.filter(c=>c!==loc) : [...f.locations,loc]
+    }))
+  }
+
+  function getCalDays() {
+    const firstDay = new Date(calYear,calMonth,1).getDay()
+    const daysInMonth = new Date(calYear,calMonth+1,0).getDate()
+    return {firstDay,daysInMonth}
+  }
   function getListingsForDay(day) {
     return listings.filter(l => {
       const d = new Date(l.deadline)
-      return d.getFullYear() === calYear && d.getMonth() === calMonth && d.getDate() === day
+      return d.getFullYear()===calYear && d.getMonth()===calMonth && d.getDate()===day
     })
   }
-
   function isToday(day) {
-    return day === today.getDate() && calMonth === today.getMonth() && calYear === today.getFullYear()
+    return day===today.getDate() && calMonth===today.getMonth() && calYear===today.getFullYear()
   }
-
   function prevMonth() {
-    if (calMonth === 0) { setCalMonth(11); setCalYear(y => y-1) }
-    else setCalMonth(m => m-1)
+    if (calMonth===0){setCalMonth(11);setCalYear(y=>y-1)} else setCalMonth(m=>m-1)
   }
   function nextMonth() {
-    if (calMonth === 11) { setCalMonth(0); setCalYear(y => y+1) }
-    else setCalMonth(m => m+1)
+    if (calMonth===11){setCalMonth(0);setCalYear(y=>y+1)} else setCalMonth(m=>m+1)
   }
 
-  const freeCount = listings.filter(l => l.cost_free).length
-  const urgentCount = listings.filter(l => daysUntil(l.deadline) <= 14).length
+  const freeCount = listings.filter(l=>l.cost_free).length
+  const urgentCount = listings.filter(l=>daysUntil(l.deadline)<=14&&daysUntil(l.deadline)>=0).length
+  const {firstDay,daysInMonth} = getCalDays()
 
   const s = {
-    nav: {background:'#fff',borderBottom:'1.5px solid #e0ddd5',padding:'0 2rem',display:'flex',alignItems:'center',justifyContent:'space-between',height:64,position:'sticky',top:0,zIndex:100},
-    logo: {fontFamily:"'Playfair Display',serif",fontSize:22,color:'#2C2C2A',letterSpacing:'-0.5px'},
-    logoSpan: {color:'#E8A020'},
-    navCta: {background:'#E8A020',color:'#fff',border:'none',padding:'9px 18px',borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:600,cursor:'pointer'},
-    hero: {background:'#fff',borderBottom:'1.5px solid #e0ddd5',padding:'3rem 2rem 2.5rem'},
-    h2: {fontFamily:"'Playfair Display',serif",fontSize:38,lineHeight:1.15,color:'#2C2C2A',marginBottom:'.75rem',maxWidth:600},
-    searchBar: {display:'flex',gap:10,maxWidth:600,marginBottom:'1.5rem'},
-    searchInput: {flex:1,border:'1.5px solid #e0ddd5',borderRadius:8,padding:'11px 16px',fontFamily:"'DM Sans',sans-serif",fontSize:15,background:'#F7F3EC',outline:'none'},
-    searchBtn: {background:'#2C2C2A',color:'#fff',border:'none',padding:'11px 20px',borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:500,cursor:'pointer'},
-    stats: {display:'flex',gap:'2rem',marginTop:'1rem'},
-    statNum: {fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:700,color:'#2C2C2A'},
-    statLabel: {fontSize:12,color:'#888780',marginTop:2},
-    tabBar: {background:'#fff',borderBottom:'1.5px solid #e0ddd5',padding:'0 2rem',display:'flex',gap:0},
-    tabBtn: (active) => ({border:'none',borderBottom:active?'2.5px solid #E8A020':'2.5px solid transparent',background:'none',padding:'14px 20px',fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:active?600:400,color:active?'#2C2C2A':'#888780',cursor:'pointer',transition:'all .15s',marginBottom:'-1px'}),
-    filters: {background:'#fff',borderBottom:'1.5px solid #e0ddd5',padding:'.6rem 2rem',display:'flex',gap:8,overflowX:'auto',flexWrap:'wrap'},
-    filterLabel: {fontSize:11,fontWeight:700,color:'#888780',textTransform:'uppercase',letterSpacing:'.5px',alignSelf:'center',marginRight:4,whiteSpace:'nowrap'},
-    chip: (active,color) => ({border:active?'none':'1.5px solid #e0ddd5',background:active?(color||'#2C2C2A'):'#fff',color:active?'#fff':'#2C2C2A',borderRadius:20,padding:'5px 14px',fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:500,cursor:'pointer',whiteSpace:'nowrap',transition:'all .15s'}),
-    divider: {width:'1px',height:28,background:'#e0ddd5',alignSelf:'center',margin:'0 4px'},
-    main: {maxWidth:900,margin:'0 auto',padding:'2rem'},
-    card: {background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:12,padding:'1.25rem',marginBottom:12,transition:'border .15s'},
-    cardTitle: {fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,margin:'8px 0 2px',color:'#2C2C2A'},
-    cardOrg: {fontSize:13,color:'#888780',marginBottom:10},
-    meta: {display:'flex',flexWrap:'wrap',gap:10,marginBottom:10},
-    metaItem: (urgent) => ({display:'flex',alignItems:'center',gap:4,fontSize:13,color:urgent?'#D85A30':'#888780'}),
-    cardDesc: {fontSize:13,color:'#888780',lineHeight:1.5,marginBottom:12},
-    cardFooter: {display:'flex',alignItems:'center',justifyContent:'space-between',paddingTop:12,borderTop:'1px solid #e0ddd5'},
-    cost: {fontFamily:"'Playfair Display',serif",fontSize:18,fontWeight:700,color:'#2C2C2A'},
-    regBtn: {background:'#E8A020',color:'#fff',border:'none',padding:'8px 16px',borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:5,textDecoration:'none'},
-    overlay: {position:'fixed',inset:0,background:'rgba(44,44,42,.45)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center'},
-    modal: {background:'#fff',borderRadius:12,padding:'1.75rem',maxWidth:400,width:'90%',border:'1.5px solid #e0ddd5'},
-    calOption: {border:'1.5px solid #e0ddd5',borderRadius:8,padding:'10px 14px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',fontSize:14,fontWeight:500,background:'#fff',width:'100%',marginBottom:8,transition:'border .15s'},
-    submitModal: {background:'#fff',borderRadius:12,padding:'1.75rem',maxWidth:480,width:'90%',border:'1.5px solid #e0ddd5',maxHeight:'90vh',overflowY:'auto'},
-    input: {width:'100%',border:'1.5px solid #e0ddd5',borderRadius:8,padding:'9px 12px',fontFamily:"'DM Sans',sans-serif",fontSize:14,color:'#2C2C2A',background:'#F7F3EC',outline:'none',boxSizing:'border-box'},
-    submitBtn: {background:'#E8A020',color:'#fff',border:'none',padding:'11px 24px',borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:600,cursor:'pointer',width:'100%',marginTop:4},
-    cancelBtn: {background:'none',border:'1.5px solid #e0ddd5',borderRadius:8,padding:'8px 16px',fontFamily:"'DM Sans',sans-serif",fontSize:14,cursor:'pointer',color:'#888780',width:'100%',marginTop:8},
+    nav:{background:'#fff',borderBottom:'1.5px solid #e0ddd5',padding:'0 2rem',display:'flex',alignItems:'center',justifyContent:'space-between',height:64,position:'sticky',top:0,zIndex:100},
+    logo:{fontFamily:"'Playfair Display',serif",fontSize:22,color:'#2C2C2A',letterSpacing:'-0.5px'},
+    logoSpan:{color:'#E8A020'},
+    navRight:{display:'flex',gap:8},
+    navBtn:(color)=>({background:color||'#E8A020',color:'#fff',border:'none',padding:'9px 18px',borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:600,cursor:'pointer'}),
+    hero:{background:'#fff',borderBottom:'1.5px solid #e0ddd5',padding:'3rem 2rem 2.5rem'},
+    h2:{fontFamily:"'Playfair Display',serif",fontSize:38,lineHeight:1.15,color:'#2C2C2A',marginBottom:'.75rem',maxWidth:600},
+    searchBar:{display:'flex',gap:10,maxWidth:600,marginBottom:'1.5rem'},
+    searchInput:{flex:1,border:'1.5px solid #e0ddd5',borderRadius:8,padding:'11px 16px',fontFamily:"'DM Sans',sans-serif",fontSize:15,background:'#F7F3EC',outline:'none'},
+    searchBtn:{background:'#2C2C2A',color:'#fff',border:'none',padding:'11px 20px',borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:500,cursor:'pointer'},
+    stats:{display:'flex',gap:'2rem',marginTop:'1rem'},
+    statNum:{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:700,color:'#2C2C2A'},
+    statLabel:{fontSize:12,color:'#888780',marginTop:2},
+    tabBar:{background:'#fff',borderBottom:'1.5px solid #e0ddd5',padding:'0 2rem',display:'flex',gap:0},
+    tabBtn:(active)=>({border:'none',borderBottom:active?'2.5px solid #E8A020':'2.5px solid transparent',background:'none',padding:'14px 20px',fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:active?600:400,color:active?'#2C2C2A':'#888780',cursor:'pointer',transition:'all .15s',marginBottom:'-1px'}),
+    filters:{background:'#fff',borderBottom:'1.5px solid #e0ddd5',padding:'.75rem 2rem',display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'},
+    filterLabel:{fontSize:11,fontWeight:700,color:'#888780',textTransform:'uppercase',letterSpacing:'.5px',whiteSpace:'nowrap'},
+    chip:(active,color)=>({border:active?'none':'1.5px solid #e0ddd5',background:active?(color||'#2C2C2A'):'#fff',color:active?'#fff':'#2C2C2A',borderRadius:20,padding:'5px 14px',fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:500,cursor:'pointer',whiteSpace:'nowrap',transition:'all .15s'}),
+    divider:{width:'1px',height:28,background:'#e0ddd5',margin:'0 4px'},
+    main:{maxWidth:900,margin:'0 auto',padding:'2rem'},
+    card:{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:12,padding:'1.25rem',marginBottom:12},
+    cardTitle:{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,margin:'8px 0 2px',color:'#2C2C2A'},
+    cardOrg:{fontSize:13,color:'#888780',marginBottom:10},
+    meta:{display:'flex',flexWrap:'wrap',gap:10,marginBottom:10},
+    metaItem:(urgent)=>({display:'flex',alignItems:'center',gap:4,fontSize:13,color:urgent?'#D85A30':'#888780'}),
+    cardDesc:{fontSize:13,color:'#888780',lineHeight:1.5,marginBottom:12},
+    cardFooter:{display:'flex',alignItems:'center',justifyContent:'space-between',paddingTop:12,borderTop:'1px solid #e0ddd5'},
+    cost:{fontFamily:"'Playfair Display',serif",fontSize:18,fontWeight:700,color:'#2C2C2A'},
+    regBtn:{background:'#E8A020',color:'#fff',border:'none',padding:'8px 16px',borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:5,textDecoration:'none'},
+    overlay:{position:'fixed',inset:0,background:'rgba(44,44,42,.45)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center'},
+    modal:{background:'#fff',borderRadius:12,padding:'1.75rem',maxWidth:420,width:'90%',border:'1.5px solid #e0ddd5'},
+    calOption:{border:'1.5px solid #e0ddd5',borderRadius:8,padding:'10px 14px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',fontSize:14,fontWeight:500,background:'#fff',width:'100%',marginBottom:8},
+    submitModal:{background:'#fff',borderRadius:12,padding:'1.75rem',maxWidth:520,width:'90%',border:'1.5px solid #e0ddd5',maxHeight:'90vh',overflowY:'auto'},
+    input:{width:'100%',border:'1.5px solid #e0ddd5',borderRadius:8,padding:'9px 12px',fontFamily:"'DM Sans',sans-serif",fontSize:14,color:'#2C2C2A',background:'#F7F3EC',outline:'none',boxSizing:'border-box'},
+    submitBtn:{background:'#E8A020',color:'#fff',border:'none',padding:'11px 24px',borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:600,cursor:'pointer',width:'100%',marginTop:4},
+    cancelBtn:{background:'none',border:'1.5px solid #e0ddd5',borderRadius:8,padding:'8px 16px',fontFamily:"'DM Sans',sans-serif",fontSize:14,cursor:'pointer',color:'#888780',width:'100%',marginTop:8},
   }
-
-  const { firstDay, daysInMonth } = getCalDays()
 
   return (
     <>
@@ -180,7 +213,10 @@ const sorted = [...listings].sort((a, b) => {
           <div style={{width:36,height:36,background:'#E8A020',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>🌞</div>
           <span style={s.logo}>Your<span style={s.logoSpan}>KidCal</span></span>
         </div>
-        <button style={s.navCta} onClick={() => setSubmitOpen(true)}>+ Submit a Listing</button>
+        <div style={s.navRight}>
+          <button style={s.navBtn('#185FA5')} onClick={()=>setNotifyOpen(true)}>🔔 Get Notified</button>
+          <button style={s.navBtn()} onClick={()=>setSubmitOpen(true)}>+ Submit a Listing</button>
+        </div>
       </nav>
 
       {/* HERO */}
@@ -194,7 +230,7 @@ const sorted = [...listings].sort((a, b) => {
             Camps, schools, sports, daycares, and rec programs across SLO County — registration deadlines, costs, and links, all in one spot.
           </p>
           <div style={s.searchBar}>
-            <input style={s.searchInput} placeholder="Search programs, camps, schools..." value={search} onChange={e => setSearch(e.target.value)} />
+            <input style={s.searchInput} placeholder="Search programs, camps, schools..." value={search} onChange={e=>setSearch(e.target.value)}/>
             <button style={s.searchBtn}>Search</button>
           </div>
           <div style={s.stats}>
@@ -205,27 +241,51 @@ const sorted = [...listings].sort((a, b) => {
         </div>
       </div>
 
-      {/* MAIN TABS */}
+      {/* TABS */}
       <div style={s.tabBar}>
-        {[['browse','📋 Browse'],['calendar','📅 Calendar']].map(([id,label]) => (
-          <button key={id} style={s.tabBtn(tab===id)} onClick={() => setTab(id)}>{label}</button>
+        {[['browse','📋 Browse'],['calendar','📅 Calendar']].map(([id,label])=>(
+          <button key={id} style={s.tabBtn(tab===id)} onClick={()=>setTab(id)}>{label}</button>
         ))}
       </div>
 
       {/* ══ BROWSE TAB ══ */}
-      {tab === 'browse' && (
+      {tab==='browse' && (
         <>
-          {/* CATEGORY FILTERS */}
+          {/* FILTERS */}
           <div style={s.filters}>
             <span style={s.filterLabel}>Category</span>
-            {CATEGORIES.map(cat => (
-              <button key={cat} style={s.chip(filter===cat)} onClick={() => setFilter(cat)}>{cat}</button>
+            {CATEGORIES.map(cat=>(
+              <button key={cat} style={s.chip(filter===cat)} onClick={()=>setFilter(cat)}>{cat}</button>
+            ))}
+            <div style={s.divider}/>
+            <span style={s.filterLabel}>Gender</span>
+            {[['all','All'],['male','Boys'],['female','Girls']].map(([val,label])=>(
+              <button key={val} style={s.chip(gender===val,'#D85A30')} onClick={()=>setGender(val)}>{label}</button>
             ))}
             <div style={s.divider}/>
             <span style={s.filterLabel}>Location</span>
-            {LOCATIONS.map(loc => (
-              <button key={loc} style={s.chip(location===loc,'#185FA5')} onClick={() => setLocation(loc)}>{loc}</button>
+            {LOCATIONS.map(loc=>(
+              <button key={loc} style={s.chip(location===loc,'#185FA5')} onClick={()=>setLocation(loc)}>{loc}</button>
             ))}
+          </div>
+
+          {/* AGE SLIDER */}
+          <div style={{background:'#fff',borderBottom:'1.5px solid #e0ddd5',padding:'.75rem 2rem',display:'flex',alignItems:'center',gap:16}}>
+            <span style={s.filterLabel}>Age Range</span>
+            <div style={{display:'flex',alignItems:'center',gap:10,flex:1,maxWidth:400}}>
+              <span style={{fontSize:13,fontWeight:600,color:'#2C2C2A',minWidth:24}}>{ageMin}</span>
+              <input type="range" min={0} max={18} value={ageMin}
+                onChange={e=>setAgeMin(Math.min(Number(e.target.value),ageMax))}
+                style={{flex:1,accentColor:'#E8A020'}}/>
+              <span style={{fontSize:13,color:'#888780'}}>to</span>
+              <input type="range" min={0} max={18} value={ageMax}
+                onChange={e=>setAgeMax(Math.max(Number(e.target.value),ageMin))}
+                style={{flex:1,accentColor:'#E8A020'}}/>
+              <span style={{fontSize:13,fontWeight:600,color:'#2C2C2A',minWidth:32}}>{ageMax === 18 ? '18+' : ageMax}</span>
+            </div>
+            {(ageMin > 0 || ageMax < 18) && (
+              <button onClick={()=>{setAgeMin(0);setAgeMax(18)}} style={{background:'none',border:'1.5px solid #e0ddd5',borderRadius:20,padding:'4px 12px',fontSize:12,cursor:'pointer',color:'#888780'}}>Reset</button>
+            )}
           </div>
 
           <div style={s.main}>
@@ -234,60 +294,70 @@ const sorted = [...listings].sort((a, b) => {
               <span style={{fontSize:13,color:'#888780'}}>Showing {filtered.length} program{filtered.length!==1?'s':''}</span>
             </div>
 
-            {filtered.length === 0 && (
+            {filtered.length===0 && (
               <div style={{textAlign:'center',padding:'3rem',color:'#888780'}}>
                 <div style={{fontSize:32,marginBottom:8}}>🔍</div>
-                <div>No programs found. Try a different search or filter.</div>
+                <div>No programs found. Try adjusting your filters.</div>
+                <button onClick={()=>{setFilter('All');setLocation('All Areas');setGender('all');setAgeMin(0);setAgeMax(18);setSearch('')}} style={{marginTop:12,background:'#E8A020',color:'#fff',border:'none',borderRadius:8,padding:'8px 16px',fontSize:13,fontWeight:600,cursor:'pointer'}}>Clear all filters</button>
               </div>
             )}
 
-            {filtered.map(l => {
+            {filtered.map(l=>{
               const days = daysUntil(l.deadline)
-              const urgent = days <= 9
+              const urgent = days <= 9 && days >= 0
+              const past = days < 0
               return (
-                <div key={l.id} style={s.card}>
+                <div key={l.id} style={{...s.card,opacity:past?0.6:1,borderLeft:past?'3px solid #e0ddd5':'3px solid '+(urgent?'#D85A30':CAT_COLORS[l.category?.toLowerCase()]||'#e0ddd5')}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
-                    <span style={{...{fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:10,textTransform:'uppercase',letterSpacing:'.4px'}, background:BADGE[l.category?.toLowerCase()]?.bg||'#eee', color:BADGE[l.category?.toLowerCase()]?.color||'#666'}}>{l.category}</span>
+                    <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                      <span style={{fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:10,textTransform:'uppercase',letterSpacing:'.4px',background:BADGE[l.category?.toLowerCase()]?.bg||'#eee',color:BADGE[l.category?.toLowerCase()]?.color||'#666'}}>{l.category}</span>
+                      {l.gender && l.gender!=='both' && <span style={{fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:10,textTransform:'uppercase',background:'#FAECE7',color:'#D85A30'}}>{l.gender==='male'?'Boys':'Girls'}</span>}
+                      {past && <span style={{fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:10,textTransform:'uppercase',background:'#f0ede6',color:'#888780'}}>Closed</span>}
+                    </div>
                     <div style={{display:'flex',gap:6,alignItems:'center'}}>
-                      {urgent && <span style={{background:'#FAECE7',color:'#D85A30',fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:10,textTransform:'uppercase'}}>Urgent</span>}
-                      <button style={{background:isSaved(l.id)?'#EAF3DE':'none',border:isSaved(l.id)?'1.5px solid #3B6D11':'1.5px solid #e0ddd5',color:isSaved(l.id)?'#3B6D11':'#888780',borderRadius:8,width:30,height:30,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:14}} onClick={() => toggleSave(l)} title="Save">🔖</button>
-                      <button style={{background:'none',border:'1.5px solid #e0ddd5',color:'#888780',borderRadius:8,width:30,height:30,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:14}} onClick={() => setCalModal(l)} title="Add to calendar">📅</button>
+                      {urgent && !past && <span style={{background:'#FAECE7',color:'#D85A30',fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:10,textTransform:'uppercase'}}>Urgent</span>}
+                      <button style={{background:isSaved(l.id)?'#EAF3DE':'none',border:isSaved(l.id)?'1.5px solid #3B6D11':'1.5px solid #e0ddd5',color:isSaved(l.id)?'#3B6D11':'#888780',borderRadius:8,width:30,height:30,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:14}} onClick={()=>toggleSave(l)}>🔖</button>
+                      <button style={{background:'none',border:'1.5px solid #e0ddd5',color:'#888780',borderRadius:8,width:30,height:30,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:14}} onClick={()=>setCalModal(l)}>📅</button>
                     </div>
                   </div>
                   <div style={s.cardTitle}>{l.title}</div>
-                  <div style={s.cardOrg}>{l.org_name}{l.location ? ` · ${l.location}` : ''}</div>
+                  <div style={s.cardOrg}>{l.org_name}{l.location?` · ${l.location}`:''}</div>
                   <div style={s.meta}>
-                    <span style={s.metaItem(urgent)}>🕐 Closes <strong style={{marginLeft:3}}>{formatDateShort(l.deadline)}</strong></span>
-                    {l.start_date && <span style={s.metaItem(false)}>📆 Starts <strong style={{marginLeft:3}}>{formatDateShort(l.start_date)}</strong></span>}
-                    {l.ages && <span style={s.metaItem(false)}>👥 Ages <strong style={{marginLeft:3}}>{l.ages}</strong></span>}
-                    {l.location && <span style={s.metaItem(false)}>📍 <strong style={{marginLeft:3}}>{l.location}</strong></span>}
+                    <span style={s.metaItem(urgent&&!past)}>🕐 {past?'Closed':'Closes'} <strong style={{marginLeft:3}}>{formatDateShort(l.deadline)}</strong></span>
+                    {l.start_date&&<span style={s.metaItem(false)}>📆 Starts <strong style={{marginLeft:3}}>{formatDateShort(l.start_date)}</strong></span>}
+                    {l.ages&&<span style={s.metaItem(false)}>👥 Ages <strong style={{marginLeft:3}}>{l.ages}</strong></span>}
+                    {l.location&&<span style={s.metaItem(false)}>📍 <strong style={{marginLeft:3}}>{l.location}</strong></span>}
                   </div>
-                  {l.description && <p style={s.cardDesc}>{l.description}</p>}
-                  <div style={{height:3,background:'#e0ddd5',borderRadius:2,marginBottom:6,overflow:'hidden'}}>
-                    <div style={{height:'100%',width:`${Math.min(100,Math.max(5,(1-days/60)*100))}%`,background:urgencyColor(days),borderRadius:2}}></div>
-                  </div>
-                  <div style={{fontSize:11,color:urgencyColor(days),fontWeight:600,marginBottom:10}}>{days<=0?'Deadline passed':`${days} day${days!==1?'s':''} left to register`}</div>
+                  {l.description&&<p style={s.cardDesc}>{l.description}</p>}
+                  {!past&&(
+                    <>
+                      <div style={{height:3,background:'#e0ddd5',borderRadius:2,marginBottom:6,overflow:'hidden'}}>
+                        <div style={{height:'100%',width:`${Math.min(100,Math.max(5,(1-days/60)*100))}%`,background:urgencyColor(days),borderRadius:2}}></div>
+                      </div>
+                      <div style={{fontSize:11,color:urgencyColor(days),fontWeight:600,marginBottom:10}}>{days} day{days!==1?'s':''} left to register</div>
+                    </>
+                  )}
                   <div style={s.cardFooter}>
                     <div style={s.cost}>{l.cost_free?'Free':`$${l.cost?.toLocaleString()}`}<span style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:400,color:'#888780'}}>{!l.cost_free&&l.end_date?' /season':!l.cost_free?' /mo':''}</span></div>
-                    {l.registration_url && <a href={l.registration_url} target="_blank" rel="noopener noreferrer" style={s.regBtn}>↗ Register</a>}
+                    {l.registration_url&&<a href={l.registration_url} target="_blank" rel="noopener noreferrer" style={s.regBtn}>↗ Register</a>}
                   </div>
                 </div>
               )
             })}
 
-            {saved.length > 0 && (
+            {saved.length>0&&(
               <div style={{...s.card,marginTop:'2rem',borderColor:'#3B6D11'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
                   <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:16}}>Saved Programs ({saved.length})</h3>
-                  <button style={{background:'#3B6D11',color:'#fff',border:'none',padding:'7px 14px',borderRadius:8,fontSize:13,fontWeight:600,cursor:'pointer'}} onClick={() => downloadIcs(saved)}>⬇ Download All to Calendar</button>
+                  <button style={{background:'#3B6D11',color:'#fff',border:'none',padding:'7px 14px',borderRadius:8,fontSize:13,fontWeight:600,cursor:'pointer'}} onClick={()=>downloadIcs(saved)}>⬇ Download All</button>
                 </div>
-                {saved.map(l => (
+                {saved.map(l=>(
                   <div key={l.id} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid #e0ddd5',fontSize:13}}>
                     <div>
                       <div style={{fontWeight:500,color:'#2C2C2A'}}>{l.title}</div>
                       <div style={{color:'#888780',fontSize:11,marginTop:2}}>Deadline: {formatDate(l.deadline)}</div>
                     </div>
-                    <button onClick={() => toggleSave(l)} style={{background:'none',border:'none',cursor:'pointer',color:'#888780',fontSize:18}}>×</button>
+                    <button onClick={()=>toggleSave(l)} style={{background:'none',border:'none',cursor:'pointer',color:'#888780',fontSize:18}}>×</button>
                   </div>
                 ))}
               </div>
@@ -297,143 +367,196 @@ const sorted = [...listings].sort((a, b) => {
       )}
 
       {/* ══ CALENDAR TAB ══ */}
-      {tab === 'calendar' && (
+      {tab==='calendar'&&(
         <div style={s.main}>
-          {/* Calendar header */}
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1.5rem'}}>
             <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:24}}>{MONTHS[calMonth]} {calYear}</h3>
             <div style={{display:'flex',gap:8,alignItems:'center'}}>
               <button style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:8,padding:'7px 14px',cursor:'pointer',fontSize:14}} onClick={prevMonth}>← Prev</button>
               <button style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:8,padding:'7px 14px',cursor:'pointer',fontSize:14}} onClick={nextMonth}>Next →</button>
-              <button style={{background:'#2C2C2A',color:'#fff',border:'none',borderRadius:8,padding:'8px 16px',cursor:'pointer',fontSize:13,fontWeight:600}} onClick={() => downloadIcs(listings)}>⬇ Download All Deadlines</button>
+              <button style={{background:'#2C2C2A',color:'#fff',border:'none',borderRadius:8,padding:'8px 16px',cursor:'pointer',fontSize:13,fontWeight:600}} onClick={()=>downloadIcs(listings)}>⬇ Download All</button>
             </div>
           </div>
-
-          {/* Legend */}
           <div style={{display:'flex',gap:12,flexWrap:'wrap',marginBottom:'1rem'}}>
-            {Object.entries(CAT_COLORS).map(([cat,color]) => (
+            {Object.entries(CAT_COLORS).map(([cat,color])=>(
               <div key={cat} style={{display:'flex',alignItems:'center',gap:5,fontSize:12}}>
                 <div style={{width:10,height:10,borderRadius:'50%',background:color}}></div>
                 <span style={{color:'#888780',textTransform:'capitalize'}}>{cat}</span>
               </div>
             ))}
           </div>
-
-          {/* Calendar grid */}
           <div style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:12,overflow:'hidden'}}>
-            {/* Day headers */}
             <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',borderBottom:'1.5px solid #e0ddd5'}}>
-              {DAYS.map(d => (
-                <div key={d} style={{textAlign:'center',padding:'10px 0',fontSize:12,fontWeight:700,color:'#888780',textTransform:'uppercase',letterSpacing:'.5px'}}>{d}</div>
-              ))}
+              {DAYS.map(d=><div key={d} style={{textAlign:'center',padding:'10px 0',fontSize:12,fontWeight:700,color:'#888780',textTransform:'uppercase',letterSpacing:'.5px'}}>{d}</div>)}
             </div>
-            {/* Day cells */}
             <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)'}}>
-              {Array.from({length: firstDay}).map((_,i) => (
+              {Array.from({length:firstDay}).map((_,i)=>(
                 <div key={'e'+i} style={{minHeight:90,borderRight:'1px solid #f0ede6',borderBottom:'1px solid #f0ede6',background:'#faf9f6'}}></div>
               ))}
-              {Array.from({length: daysInMonth}).map((_,i) => {
-                const day = i+1
-                const dayListings = getListingsForDay(day)
-                const isT = isToday(day)
+              {Array.from({length:daysInMonth}).map((_,i)=>{
+                const day=i+1
+                const dayListings=getListingsForDay(day)
+                const isT=isToday(day)
                 return (
-                  <div key={day} style={{minHeight:90,borderRight:'1px solid #f0ede6',borderBottom:'1px solid #f0ede6',padding:'6px',background:isT?'#fffbf2':'#fff'}}>
+                  <div key={day} style={{minHeight:90,borderRight:'1px solid #f0ede6',borderBottom:'1px solid #f0ede6',padding:6,background:isT?'#fffbf2':'#fff'}}>
                     <div style={{width:24,height:24,borderRadius:'50%',background:isT?'#E8A020':'transparent',color:isT?'#fff':'#2C2C2A',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:isT?700:400,marginBottom:4}}>{day}</div>
-                    {dayListings.map(l => (
-                      <div key={l.id}
-                        onClick={() => setCalModal(l)}
-                        style={{background:CAT_COLORS[l.category?.toLowerCase()]||'#888',color:'#fff',borderRadius:4,padding:'2px 5px',fontSize:11,fontWeight:500,marginBottom:2,cursor:'pointer',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',lineHeight:1.4}}>
-                        {l.title}
-                      </div>
+                    {dayListings.map(l=>(
+                      <div key={l.id} onClick={()=>setCalModal(l)} style={{background:CAT_COLORS[l.category?.toLowerCase()]||'#888',color:'#fff',borderRadius:4,padding:'2px 5px',fontSize:11,fontWeight:500,marginBottom:2,cursor:'pointer',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',lineHeight:1.4}}>{l.title}</div>
                     ))}
                   </div>
                 )
               })}
             </div>
           </div>
-
-          {/* Upcoming deadlines list */}
           <div style={{marginTop:'2rem'}}>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1rem'}}>   <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:20}}>All Deadlines</h3>   <button     style={{background:hidePast?'#2C2C2A':'#fff',color:hidePast?'#fff':'#2C2C2A',border:'1.5px solid #e0ddd5',borderRadius:20,padding:'6px 14px',fontSize:13,fontWeight:500,cursor:'pointer'}}     onClick={() => setHidePast(h => !h)}>     {hidePast ? '👁 Show Past' : '🙈 Hide Past'}   </button> </div>
-            {listings
-              .filter(l => hidePast ? daysUntil(l.deadline) >= 0 : true)
-              .sort((a,b) => new Date(a.deadline)-new Date(b.deadline))
-              .map(l => {
-                const days = daysUntil(l.deadline)
-                return (
-                  <div key={l.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:10,marginBottom:8}}>
-                    <div style={{display:'flex',alignItems:'center',gap:12}}>
-                      <div style={{width:10,height:10,borderRadius:'50%',background:CAT_COLORS[l.category?.toLowerCase()]||'#888',flexShrink:0}}></div>
-                      <div>
-                        <div style={{fontSize:14,fontWeight:600,color:'#2C2C2A'}}>{l.title}</div>
-                        <div style={{fontSize:12,color:'#888780'}}>{l.org_name} · {l.location}</div>
-                      </div>
-                    </div>
-                    <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
-                      <div style={{textAlign:'right'}}>
-                        <div style={{fontSize:13,fontWeight:600,color:urgencyColor(days)}}>{formatDateShort(l.deadline)}</div>
-                        <div style={{fontSize:11,color:urgencyColor(days)}}>{days} days left</div>
-                      </div>
-                      <button style={{background:'#E8A020',color:'#fff',border:'none',borderRadius:8,padding:'6px 12px',fontSize:12,fontWeight:600,cursor:'pointer'}} onClick={() => setCalModal(l)}>+ Add</button>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1rem'}}>
+              <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:20}}>All Deadlines</h3>
+              <button style={{background:hidePast?'#2C2C2A':'#fff',color:hidePast?'#fff':'#2C2C2A',border:'1.5px solid #e0ddd5',borderRadius:20,padding:'6px 14px',fontSize:13,fontWeight:500,cursor:'pointer'}} onClick={()=>setHidePast(h=>!h)}>
+                {hidePast?'👁 Show Past':'🙈 Hide Past'}
+              </button>
+            </div>
+            {listings.filter(l=>hidePast?daysUntil(l.deadline)>=0:true).sort((a,b)=>new Date(a.deadline)-new Date(b.deadline)).map(l=>{
+              const days=daysUntil(l.deadline)
+              return (
+                <div key={l.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:10,marginBottom:8,opacity:days<0?0.5:1}}>
+                  <div style={{display:'flex',alignItems:'center',gap:12}}>
+                    <div style={{width:10,height:10,borderRadius:'50%',background:CAT_COLORS[l.category?.toLowerCase()]||'#888',flexShrink:0}}></div>
+                    <div>
+                      <div style={{fontSize:14,fontWeight:600,color:'#2C2C2A'}}>{l.title}</div>
+                      <div style={{fontSize:12,color:'#888780'}}>{l.org_name} · {l.location}</div>
                     </div>
                   </div>
-                )
-              })}
+                  <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
+                    <div style={{textAlign:'right'}}>
+                      <div style={{fontSize:13,fontWeight:600,color:days<0?'#888780':urgencyColor(days)}}>{formatDateShort(l.deadline)}</div>
+                      <div style={{fontSize:11,color:days<0?'#888780':urgencyColor(days)}}>{days<0?'Closed':`${days} days left`}</div>
+                    </div>
+                    <button style={{background:'#E8A020',color:'#fff',border:'none',borderRadius:8,padding:'6px 12px',fontSize:12,fontWeight:600,cursor:'pointer'}} onClick={()=>setCalModal(l)}>+ Add</button>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
 
-      {/* ADD TO CAL MODAL */}
-      {calModal && (
-        <div style={s.overlay} onClick={() => setCalModal(null)}>
-          <div style={s.modal} onClick={e => e.stopPropagation()}>
+      {/* CAL MODAL */}
+      {calModal&&(
+        <div style={s.overlay} onClick={()=>setCalModal(null)}>
+          <div style={s.modal} onClick={e=>e.stopPropagation()}>
             <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:20,marginBottom:6}}>Add to Calendar</h3>
             <p style={{fontSize:14,color:'#888780',marginBottom:'1.25rem',lineHeight:1.6}}>"{calModal.title}"<br/>Deadline: {formatDate(calModal.deadline)}</p>
-            <button style={s.calOption} onClick={() => { addToGoogle(calModal); setCalModal(null) }}>🗓 Google Calendar</button>
-            <button style={s.calOption} onClick={() => { downloadIcs([calModal]); setCalModal(null) }}>📱 Download to Phone (.ics)</button>
-            <button style={s.calOption} onClick={() => { toggleSave(calModal); setCalModal(null) }}>🔖 Save to my list</button>
-            <button style={s.cancelBtn} onClick={() => setCalModal(null)}>Cancel</button>
+            <button style={s.calOption} onClick={()=>{addToGoogle(calModal);setCalModal(null)}}>🗓 Google Calendar</button>
+            <button style={s.calOption} onClick={()=>{downloadIcs([calModal]);setCalModal(null)}}>📱 Download to Phone (.ics)</button>
+            <button style={s.calOption} onClick={()=>{toggleSave(calModal);setCalModal(null)}}>🔖 Save to my list</button>
+            <button style={s.cancelBtn} onClick={()=>setCalModal(null)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {/* NOTIFY MODAL */}
+      {notifyOpen&&(
+        <div style={s.overlay} onClick={()=>setNotifyOpen(false)}>
+          <div style={s.submitModal} onClick={e=>e.stopPropagation()}>
+            {notifySubmitted?(
+              <div style={{textAlign:'center',padding:'2rem 0'}}>
+                <div style={{fontSize:48,marginBottom:12}}>🔔</div>
+                <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:22,marginBottom:8}}>You're signed up!</h3>
+                <p style={{color:'#888780',fontSize:14,lineHeight:1.6}}>We'll notify you when new programs matching your preferences are posted and when deadlines are approaching.</p>
+                <button style={{...s.submitBtn,marginTop:'1.5rem'}} onClick={()=>{setNotifyOpen(false);setNotifySubmitted(false)}}>Done</button>
+              </div>
+            ):(
+              <>
+                <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:22,marginBottom:6}}>🔔 Get Notified</h3>
+                <p style={{fontSize:14,color:'#888780',marginBottom:'1.25rem',lineHeight:1.6}}>We'll email you when new programs are added or deadlines are approaching — filtered to exactly what your family needs.</p>
+                <div style={{marginBottom:'1rem'}}>
+                  <label style={{display:'block',fontSize:13,fontWeight:600,color:'#2C2C2A',marginBottom:5,textTransform:'uppercase',letterSpacing:'.4px'}}>Your Name</label>
+                  <input style={s.input} type="text" placeholder="e.g. Sarah" value={notifyForm.name} onChange={e=>setNotifyForm(f=>({...f,name:e.target.value}))}/>
+                </div>
+                <div style={{marginBottom:'1rem'}}>
+                  <label style={{display:'block',fontSize:13,fontWeight:600,color:'#2C2C2A',marginBottom:5,textTransform:'uppercase',letterSpacing:'.4px'}}>Email Address *</label>
+                  <input style={s.input} type="email" placeholder="your@email.com" value={notifyForm.email} onChange={e=>setNotifyForm(f=>({...f,email:e.target.value}))}/>
+                </div>
+                <div style={{marginBottom:'1rem'}}>
+                  <label style={{display:'block',fontSize:13,fontWeight:600,color:'#2C2C2A',marginBottom:8,textTransform:'uppercase',letterSpacing:'.4px'}}>Categories I care about</label>
+                  <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                    {['Camp','School','Sport','Daycare','Rec','Arts'].map(cat=>(
+                      <button key={cat} onClick={()=>toggleNotifyCat(cat)} style={{border:notifyForm.categories.includes(cat)?'none':'1.5px solid #e0ddd5',background:notifyForm.categories.includes(cat)?'#2C2C2A':'#fff',color:notifyForm.categories.includes(cat)?'#fff':'#2C2C2A',borderRadius:20,padding:'5px 14px',fontSize:13,cursor:'pointer'}}>{cat}</button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{marginBottom:'1rem'}}>
+                  <label style={{display:'block',fontSize:13,fontWeight:600,color:'#2C2C2A',marginBottom:8,textTransform:'uppercase',letterSpacing:'.4px'}}>My area</label>
+                  <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                    {LOCATIONS.filter(l=>l!=='All Areas').map(loc=>(
+                      <button key={loc} onClick={()=>toggleNotifyLoc(loc)} style={{border:notifyForm.locations.includes(loc)?'none':'1.5px solid #e0ddd5',background:notifyForm.locations.includes(loc)?'#185FA5':'#fff',color:notifyForm.locations.includes(loc)?'#fff':'#2C2C2A',borderRadius:20,padding:'5px 14px',fontSize:13,cursor:'pointer'}}>{loc}</button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{marginBottom:'1rem'}}>
+                  <label style={{display:'block',fontSize:13,fontWeight:600,color:'#2C2C2A',marginBottom:8,textTransform:'uppercase',letterSpacing:'.4px'}}>Kids ages ({notifyForm.age_min}–{notifyForm.age_max===18?'18+':notifyForm.age_max})</label>
+                  <div style={{display:'flex',alignItems:'center',gap:10}}>
+                    <span style={{fontSize:13,fontWeight:600,minWidth:20}}>{notifyForm.age_min}</span>
+                    <input type="range" min={0} max={18} value={notifyForm.age_min} onChange={e=>setNotifyForm(f=>({...f,age_min:Math.min(Number(e.target.value),f.age_max)}))} style={{flex:1,accentColor:'#E8A020'}}/>
+                    <span style={{fontSize:13,color:'#888780'}}>to</span>
+                    <input type="range" min={0} max={18} value={notifyForm.age_max} onChange={e=>setNotifyForm(f=>({...f,age_max:Math.max(Number(e.target.value),f.age_min)}))} style={{flex:1,accentColor:'#E8A020'}}/>
+                    <span style={{fontSize:13,fontWeight:600,minWidth:28}}>{notifyForm.age_max===18?'18+':notifyForm.age_max}</span>
+                  </div>
+                </div>
+                <div style={{marginBottom:'1.25rem',background:'#F7F3EC',borderRadius:8,padding:'12px'}}>
+                  <label style={{display:'block',fontSize:13,fontWeight:600,color:'#2C2C2A',marginBottom:8,textTransform:'uppercase',letterSpacing:'.4px'}}>Notify me when</label>
+                  {[['notify_new','A new matching program is added'],['notify_deadline_7','A deadline is 7 days away'],['notify_deadline_30','A deadline is 30 days away']].map(([key,label])=>(
+                    <label key={key} style={{display:'flex',alignItems:'center',gap:8,fontSize:14,color:'#2C2C2A',marginBottom:6,cursor:'pointer'}}>
+                      <input type="checkbox" checked={notifyForm[key]} onChange={e=>setNotifyForm(f=>({...f,[key]:e.target.checked}))} style={{accentColor:'#E8A020'}}/>
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                <button style={{...s.submitBtn,opacity:notifyForm.email?1:0.5}} onClick={notifyForm.email?handleNotifySubmit:undefined}>🔔 Sign Me Up</button>
+                <button style={s.cancelBtn} onClick={()=>setNotifyOpen(false)}>Cancel</button>
+              </>
+            )}
           </div>
         </div>
       )}
 
       {/* SUBMIT MODAL */}
-      {submitOpen && (
-        <div style={s.overlay} onClick={() => setSubmitOpen(false)}>
-          <div style={s.submitModal} onClick={e => e.stopPropagation()}>
-            {submitted ? (
+      {submitOpen&&(
+        <div style={s.overlay} onClick={()=>setSubmitOpen(false)}>
+          <div style={s.submitModal} onClick={e=>e.stopPropagation()}>
+            {submitted?(
               <div style={{textAlign:'center',padding:'2rem 0'}}>
                 <div style={{fontSize:48,marginBottom:12}}>✅</div>
                 <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:22,marginBottom:8}}>Submitted!</h3>
                 <p style={{color:'#888780',fontSize:14,lineHeight:1.6}}>We'll review your listing and publish it within 2 business days.</p>
-                <button style={{...s.submitBtn,marginTop:'1.5rem'}} onClick={() => { setSubmitOpen(false); setSubmitted(false) }}>Close</button>
+                <button style={{...s.submitBtn,marginTop:'1.5rem'}} onClick={()=>{setSubmitOpen(false);setSubmitted(false)}}>Close</button>
               </div>
-            ) : (
+            ):(
               <>
                 <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:22,marginBottom:6}}>Submit a Listing</h3>
                 <p style={{fontSize:14,color:'#888780',marginBottom:'1.25rem',lineHeight:1.6}}>Submit your program for review. We'll verify and publish within 2 business days.</p>
-                {[['Program name','title','text','e.g. SLO Summer Arts Camp'],['Organization name','org_name','text','e.g. SLO Arts Center'],['Location','location','text','e.g. San Luis Obispo'],['Age range','ages','text','e.g. 6–12'],['Registration deadline','deadline','date',''],['Program start date','start_date','date',''],['Cost (leave blank if free)','cost','text','e.g. 350'],['Registration link','registration_url','url','https://'],['Contact email','email','email','your@email.com']].map(([label,key,type,ph]) => (
+                {[['Program name','title','text','e.g. SLO Summer Arts Camp'],['Organization name','org_name','text','e.g. SLO Arts Center'],['Location','location','text','e.g. San Luis Obispo'],['Age range','ages','text','e.g. 6–12'],['Registration deadline','deadline','date',''],['Program start date','start_date','date',''],['Cost (leave blank if free)','cost','text','e.g. 350'],['Registration link','registration_url','url','https://'],['Contact email','email','email','your@email.com']].map(([label,key,type,ph])=>(
                   <div key={key} style={{marginBottom:'1rem'}}>
                     <label style={{display:'block',fontSize:13,fontWeight:600,color:'#2C2C2A',marginBottom:5,textTransform:'uppercase',letterSpacing:'.4px'}}>{label}</label>
-                    <input style={s.input} type={type} placeholder={ph} value={form[key]} onChange={e => setForm(f => ({...f,[key]:e.target.value}))} />
+                    <input style={s.input} type={type} placeholder={ph} value={form[key]} onChange={e=>setForm(f=>({...f,[key]:e.target.value}))}/>
                   </div>
                 ))}
                 <div style={{marginBottom:'1rem'}}>
                   <label style={{display:'block',fontSize:13,fontWeight:600,color:'#2C2C2A',marginBottom:5,textTransform:'uppercase',letterSpacing:'.4px'}}>Category</label>
-                  <select style={s.input} value={form.category} onChange={e => setForm(f => ({...f,category:e.target.value}))}>
-                    {['Camp','School','Sport','Daycare','Rec','Arts'].map(c => <option key={c}>{c}</option>)}
+                  <select style={s.input} value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))}>
+                    {['Camp','School','Sport','Daycare','Rec','Arts'].map(c=><option key={c}>{c}</option>)}
                   </select>
                 </div>
                 <div style={{marginBottom:'1rem',display:'flex',alignItems:'center',gap:8}}>
-                  <input type="checkbox" id="free" checked={form.cost_free} onChange={e => setForm(f => ({...f,cost_free:e.target.checked}))} />
+                  <input type="checkbox" id="free" checked={form.cost_free} onChange={e=>setForm(f=>({...f,cost_free:e.target.checked}))}/>
                   <label htmlFor="free" style={{fontSize:14,color:'#2C2C2A'}}>This program is free</label>
                 </div>
                 <div style={{marginBottom:'1rem'}}>
                   <label style={{display:'block',fontSize:13,fontWeight:600,color:'#2C2C2A',marginBottom:5,textTransform:'uppercase',letterSpacing:'.4px'}}>Description</label>
-                  <textarea style={{...s.input,minHeight:80,resize:'vertical'}} placeholder="Brief description..." value={form.description} onChange={e => setForm(f => ({...f,description:e.target.value}))} />
+                  <textarea style={{...s.input,minHeight:80,resize:'vertical'}} placeholder="Brief description..." value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))}/>
                 </div>
                 <button style={s.submitBtn} onClick={handleSubmit}>Submit for Review</button>
-                <button style={s.cancelBtn} onClick={() => setSubmitOpen(false)}>Cancel</button>
+                <button style={s.cancelBtn} onClick={()=>setSubmitOpen(false)}>Cancel</button>
               </>
             )}
           </div>
