@@ -102,7 +102,7 @@ export default function AdminPage() {
       </nav>
       <div style={s.main}>
         <div style={s.tabs}>
-          {['pending','approved','rejected'].map(t => (
+          {['pending','approved','rejected','subscribers'].map(t => (
             <button key={t} style={s.tab(tab===t)} onClick={() => setTab(t)}>
               {t.charAt(0).toUpperCase()+t.slice(1)} ({listings.filter(l => l.status===t).length})
             </button>
