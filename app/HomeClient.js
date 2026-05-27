@@ -306,28 +306,30 @@ useEffect(() => {
 </div>
 
          {/* AGE SLIDER */}
-<div style={{background:'#fff',borderBottom:'1.5px solid #e0ddd5',padding:'.6rem 1rem'}}>
-  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
-    <span style={s.filterLabel}>Ages</span>
-    <span style={{fontSize:13,fontWeight:600,color:'#2C2C2A'}}>
-      {ageMin} – {ageMax===18?'18+':ageMax}
-      {(ageMin>0||ageMax<18)&&(
-        <button onClick={()=>{setAgeMin(0);setAgeMax(18)}} style={{background:'none',border:'1.5px solid #e0ddd5',borderRadius:20,padding:'2px 8px',fontSize:11,cursor:'pointer',color:'#888780',marginLeft:8}}>Reset</button>
-      )}
-    </span>
-  </div>
-  <div style={{display:'flex',flexDirection:'column',gap:6}}>
+{/* AGE STEPPER */}
+<div style={{background:'#fff',borderBottom:'1.5px solid #e0ddd5',padding:'.6rem 1rem',display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+  <span style={s.filterLabel}>Ages</span>
+  <div style={{display:'flex',alignItems:'center',gap:16}}>
     <div style={{display:'flex',alignItems:'center',gap:8}}>
-      <span style={{fontSize:11,color:'#888780',minWidth:28}}>Min</span>
-      <input type="range" min={0} max={18} value={ageMin} onChange={e=>setAgeMin(Math.min(Number(e.target.value),ageMax))} style={{flex:1,width:'100%'}}/>
-      <span style={{fontSize:13,fontWeight:600,color:'#2C2C2A',minWidth:24,textAlign:'right'}}>{ageMin}</span>
+      <span style={{fontSize:11,color:'#888780'}}>Min</span>
+      <div style={{display:'flex',alignItems:'center',gap:0,border:'1.5px solid #e0ddd5',borderRadius:8,overflow:'hidden'}}>
+        <button onClick={()=>setAgeMin(m=>Math.max(0,m-1))} style={{background:'#F7F3EC',border:'none',width:32,height:32,fontSize:16,cursor:'pointer',color:'#2C2C2A',display:'flex',alignItems:'center',justifyContent:'center'}}>−</button>
+        <span style={{minWidth:28,textAlign:'center',fontSize:14,fontWeight:600,color:'#2C2C2A',padding:'0 4px'}}>{ageMin}</span>
+        <button onClick={()=>setAgeMin(m=>Math.min(m+1,ageMax))} style={{background:'#F7F3EC',border:'none',width:32,height:32,fontSize:16,cursor:'pointer',color:'#2C2C2A',display:'flex',alignItems:'center',justifyContent:'center'}}>+</button>
+      </div>
     </div>
     <div style={{display:'flex',alignItems:'center',gap:8}}>
-      <span style={{fontSize:11,color:'#888780',minWidth:28}}>Max</span>
-      <input type="range" min={0} max={18} value={ageMax} onChange={e=>setAgeMax(Math.max(Number(e.target.value),ageMin))} style={{flex:1,width:'100%'}}/>
-      <span style={{fontSize:13,fontWeight:600,color:'#2C2C2A',minWidth:24,textAlign:'right'}}>{ageMax===18?'18+':ageMax}</span>
+      <span style={{fontSize:11,color:'#888780'}}>Max</span>
+      <div style={{display:'flex',alignItems:'center',gap:0,border:'1.5px solid #e0ddd5',borderRadius:8,overflow:'hidden'}}>
+        <button onClick={()=>setAgeMax(m=>Math.max(m-1,ageMin))} style={{background:'#F7F3EC',border:'none',width:32,height:32,fontSize:16,cursor:'pointer',color:'#2C2C2A',display:'flex',alignItems:'center',justifyContent:'center'}}>−</button>
+        <span style={{minWidth:32,textAlign:'center',fontSize:14,fontWeight:600,color:'#2C2C2A',padding:'0 4px'}}>{ageMax===18?'18+':ageMax}</span>
+        <button onClick={()=>setAgeMax(m=>Math.min(m+1,18))} style={{background:'#F7F3EC',border:'none',width:32,height:32,fontSize:16,cursor:'pointer',color:'#2C2C2A',display:'flex',alignItems:'center',justifyContent:'center'}}>+</button>
+      </div>
     </div>
   </div>
+  {(ageMin>0||ageMax<18)&&(
+    <button onClick={()=>{setAgeMin(0);setAgeMax(18)}} style={{background:'none',border:'1.5px solid #e0ddd5',borderRadius:20,padding:'4px 12px',fontSize:11,cursor:'pointer',color:'#888780'}}>Reset</button>
+  )}
 </div>
 
           <div style={s.main}>
@@ -544,15 +546,26 @@ useEffect(() => {
                   </div>
                 </div>
                 <div style={{marginBottom:'1rem'}}>
-                  <label style={{display:'block',fontSize:13,fontWeight:600,color:'#2C2C2A',marginBottom:8,textTransform:'uppercase',letterSpacing:'.4px'}}>Kids Ages ({notifyForm.age_min}–{notifyForm.age_max===18?'18+':notifyForm.age_max})</label>
-                  <div style={{display:'flex',alignItems:'center',gap:8}}>
-                    <span style={{fontSize:13,fontWeight:600,minWidth:20}}>{notifyForm.age_min}</span>
-                    <input type="range" min={0} max={18} value={notifyForm.age_min} onChange={e=>setNotifyForm(f=>({...f,age_min:Math.min(Number(e.target.value),f.age_max)}))} style={{flex:1}}/>
-                    <span style={{fontSize:12,color:'#888780'}}>–</span>
-                    <input type="range" min={0} max={18} value={notifyForm.age_max} onChange={e=>setNotifyForm(f=>({...f,age_max:Math.max(Number(e.target.value),f.age_min)}))} style={{flex:1}}/>
-                    <span style={{fontSize:13,fontWeight:600,minWidth:28}}>{notifyForm.age_max===18?'18+':notifyForm.age_max}</span>
-                  </div>
-                </div>
+  <label style={{display:'block',fontSize:13,fontWeight:600,color:'#2C2C2A',marginBottom:8,textTransform:'uppercase',letterSpacing:'.4px'}}>Kids Ages</label>
+  <div style={{display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>
+    <div style={{display:'flex',alignItems:'center',gap:8}}>
+      <span style={{fontSize:11,color:'#888780'}}>Min</span>
+      <div style={{display:'flex',alignItems:'center',border:'1.5px solid #e0ddd5',borderRadius:8,overflow:'hidden'}}>
+        <button onClick={()=>setNotifyForm(f=>({...f,age_min:Math.max(0,f.age_min-1)}))} style={{background:'#F7F3EC',border:'none',width:36,height:36,fontSize:18,cursor:'pointer',color:'#2C2C2A'}}>−</button>
+        <span style={{minWidth:32,textAlign:'center',fontSize:14,fontWeight:600,color:'#2C2C2A',padding:'0 4px'}}>{notifyForm.age_min}</span>
+        <button onClick={()=>setNotifyForm(f=>({...f,age_min:Math.min(f.age_min+1,f.age_max)}))} style={{background:'#F7F3EC',border:'none',width:36,height:36,fontSize:18,cursor:'pointer',color:'#2C2C2A'}}>+</button>
+      </div>
+    </div>
+    <div style={{display:'flex',alignItems:'center',gap:8}}>
+      <span style={{fontSize:11,color:'#888780'}}>Max</span>
+      <div style={{display:'flex',alignItems:'center',border:'1.5px solid #e0ddd5',borderRadius:8,overflow:'hidden'}}>
+        <button onClick={()=>setNotifyForm(f=>({...f,age_max:Math.max(f.age_max-1,f.age_min)}))} style={{background:'#F7F3EC',border:'none',width:36,height:36,fontSize:18,cursor:'pointer',color:'#2C2C2A'}}>−</button>
+        <span style={{minWidth:36,textAlign:'center',fontSize:14,fontWeight:600,color:'#2C2C2A',padding:'0 4px'}}>{notifyForm.age_max===18?'18+':notifyForm.age_max}</span>
+        <button onClick={()=>setNotifyForm(f=>({...f,age_max:Math.min(f.age_max+1,18)}))} style={{background:'#F7F3EC',border:'none',width:36,height:36,fontSize:18,cursor:'pointer',color:'#2C2C2A'}}>+</button>
+      </div>
+    </div>
+  </div>
+</div>
                 <div style={{marginBottom:'1.25rem',background:'#F7F3EC',borderRadius:8,padding:'12px'}}>
                   <label style={{display:'block',fontSize:13,fontWeight:600,color:'#2C2C2A',marginBottom:8,textTransform:'uppercase',letterSpacing:'.4px'}}>Notify me when</label>
                   {[['notify_new','New matching program added'],['notify_deadline_7','Deadline is 7 days away'],['notify_deadline_30','Deadline is 30 days away']].map(([key,label])=>(
