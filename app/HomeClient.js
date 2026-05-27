@@ -210,14 +210,15 @@ export default function HomeClient({listings}) {
   return (
     <>
       <style>{`
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  body { margin: 0; }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; max-width: 100%; overflow-x: hidden; }
+  body { font-family: 'DM Sans', sans-serif; background: #F7F3EC; }
   input[type=range] { accent-color: #E8A020; }
-  ::-webkit-scrollbar { height: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #e0ddd5; border-radius: 2px; }
+  .filter-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; white-space: nowrap; }
   .filter-scroll::-webkit-scrollbar { display: none; }
-  a { color: inherit; }
+  .filter-scroll > * { display: inline-flex; flex-shrink: 0; }
+  a { color: inherit; text-decoration: none; }
+  button { -webkit-tap-highlight-color: transparent; }
 `}</style>
 
       {/* NAV */}
