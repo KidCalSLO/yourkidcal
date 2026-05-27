@@ -184,7 +184,7 @@ export default function HomeClient({listings}) {
     statLabel:{fontSize:11,color:'#888780',marginTop:2},
     tabBar:{background:'#fff',borderBottom:'1.5px solid #e0ddd5',padding:`0 ${p}`,display:'flex'},
     tabBtn:(active)=>({border:'none',borderBottom:active?'2.5px solid #E8A020':'2.5px solid transparent',background:'none',padding:isMobile?'12px 16px':'14px 20px',fontFamily:"'DM Sans',sans-serif",fontSize:isMobile?13:14,fontWeight:active?600:400,color:active?'#2C2C2A':'#888780',cursor:'pointer',marginBottom:'-1px'}),
-    filters:{background:'#fff',borderBottom:'1.5px solid #e0ddd5',padding:'.6rem 1rem',display:'flex',gap:6,overflowX:'auto',alignItems:'center',WebkitOverflowScrolling:'touch'},
+    filters:{background:'#fff',borderBottom:'1.5px solid #e0ddd5',padding:'.6rem 1rem',display:'flex',gap:6,overflowX:'auto',alignItems:'center',WebkitOverflowScrolling:'touch',flexWrap:'nowrap',msOverflowStyle:'none',scrollbarWidth:'none'},
     filterLabel:{fontSize:10,fontWeight:700,color:'#888780',textTransform:'uppercase',letterSpacing:'.5px',whiteSpace:'nowrap',flexShrink:0},
     chip:(active,color)=>({border:active?'none':'1.5px solid #e0ddd5',background:active?(color||'#2C2C2A'):'#fff',color:active?'#fff':'#2C2C2A',borderRadius:20,padding:'5px 12px',fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:500,cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}),
     divider:{width:'1px',height:24,background:'#e0ddd5',margin:'0 2px',flexShrink:0},
