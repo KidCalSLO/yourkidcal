@@ -210,14 +210,15 @@ export default function HomeClient({listings}) {
   return (
     <>
       <style>{`
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; }
-        input[type=range] { accent-color: #E8A020; }
-        ::-webkit-scrollbar { height: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #e0ddd5; border-radius: 2px; }
-        a { color: inherit; }
-      `}</style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; }
+  input[type=range] { accent-color: #E8A020; }
+  ::-webkit-scrollbar { height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #e0ddd5; border-radius: 2px; }
+  .filter-scroll::-webkit-scrollbar { display: none; }
+  a { color: inherit; }
+`}</style>
 
       {/* NAV */}
       <nav style={s.nav}>
@@ -263,7 +264,7 @@ export default function HomeClient({listings}) {
       {/* ══ BROWSE TAB ══ */}
       {tab==='browse'&&(
         <>
-          <div style={s.filters}>
+          <div style={s.filters} className="filter-scroll">
             <span style={s.filterLabel}>Type</span>
             {CATEGORIES.map(cat=>(
               <button key={cat} style={s.chip(filter===cat)} onClick={()=>setFilter(cat)}>{cat}</button>
