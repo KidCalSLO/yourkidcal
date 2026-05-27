@@ -287,20 +287,30 @@ export default function HomeClient({listings}) {
   </div>
 </div>
 
-          {/* AGE SLIDER */}
-          <div style={{background:'#fff',borderBottom:'1.5px solid #e0ddd5',padding:'.6rem 1rem',display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-            <span style={s.filterLabel}>Ages</span>
-            <div style={{display:'flex',alignItems:'center',gap:8,flex:1,minWidth:200}}>
-              <span style={{fontSize:13,fontWeight:600,color:'#2C2C2A',minWidth:20}}>{ageMin}</span>
-              <input type="range" min={0} max={18} value={ageMin} onChange={e=>setAgeMin(Math.min(Number(e.target.value),ageMax))} style={{flex:1}}/>
-              <span style={{fontSize:12,color:'#888780'}}>–</span>
-              <input type="range" min={0} max={18} value={ageMax} onChange={e=>setAgeMax(Math.max(Number(e.target.value),ageMin))} style={{flex:1}}/>
-              <span style={{fontSize:13,fontWeight:600,color:'#2C2C2A',minWidth:28}}>{ageMax===18?'18+':ageMax}</span>
-            </div>
-            {(ageMin>0||ageMax<18)&&(
-              <button onClick={()=>{setAgeMin(0);setAgeMax(18)}} style={{background:'none',border:'1.5px solid #e0ddd5',borderRadius:20,padding:'3px 10px',fontSize:11,cursor:'pointer',color:'#888780'}}>Reset</button>
-            )}
-          </div>
+         {/* AGE SLIDER */}
+<div style={{background:'#fff',borderBottom:'1.5px solid #e0ddd5',padding:'.6rem 1rem'}}>
+  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+    <span style={s.filterLabel}>Ages</span>
+    <span style={{fontSize:13,fontWeight:600,color:'#2C2C2A'}}>
+      {ageMin} – {ageMax===18?'18+':ageMax}
+      {(ageMin>0||ageMax<18)&&(
+        <button onClick={()=>{setAgeMin(0);setAgeMax(18)}} style={{background:'none',border:'1.5px solid #e0ddd5',borderRadius:20,padding:'2px 8px',fontSize:11,cursor:'pointer',color:'#888780',marginLeft:8}}>Reset</button>
+      )}
+    </span>
+  </div>
+  <div style={{display:'flex',flexDirection:'column',gap:6}}>
+    <div style={{display:'flex',alignItems:'center',gap:8}}>
+      <span style={{fontSize:11,color:'#888780',minWidth:28}}>Min</span>
+      <input type="range" min={0} max={18} value={ageMin} onChange={e=>setAgeMin(Math.min(Number(e.target.value),ageMax))} style={{flex:1,width:'100%'}}/>
+      <span style={{fontSize:13,fontWeight:600,color:'#2C2C2A',minWidth:24,textAlign:'right'}}>{ageMin}</span>
+    </div>
+    <div style={{display:'flex',alignItems:'center',gap:8}}>
+      <span style={{fontSize:11,color:'#888780',minWidth:28}}>Max</span>
+      <input type="range" min={0} max={18} value={ageMax} onChange={e=>setAgeMax(Math.max(Number(e.target.value),ageMin))} style={{flex:1,width:'100%'}}/>
+      <span style={{fontSize:13,fontWeight:600,color:'#2C2C2A',minWidth:24,textAlign:'right'}}>{ageMax===18?'18+':ageMax}</span>
+    </div>
+  </div>
+</div>
 
           <div style={s.main}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem'}}>
