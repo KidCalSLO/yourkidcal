@@ -264,22 +264,27 @@ export default function HomeClient({listings}) {
       {/* ══ BROWSE TAB ══ */}
       {tab==='browse'&&(
         <>
-          <div style={s.filters} className="filter-scroll">
-            <span style={s.filterLabel}>Type</span>
-            {CATEGORIES.map(cat=>(
-              <button key={cat} style={s.chip(filter===cat)} onClick={()=>setFilter(cat)}>{cat}</button>
-            ))}
-            <div style={s.divider}/>
-            <span style={s.filterLabel}>Gender</span>
-            {[['all','All'],['male','Boys'],['female','Girls']].map(([val,label])=>(
-              <button key={val} style={s.chip(gender===val,'#D85A30')} onClick={()=>setGender(val)}>{label}</button>
-            ))}
-            <div style={s.divider}/>
-            <span style={s.filterLabel}>Area</span>
-            {LOCATIONS.map(loc=>(
-              <button key={loc} style={s.chip(location===loc,'#185FA5')} onClick={()=>setLocation(loc)}>{loc}</button>
-            ))}
-          </div>
+          {/* FILTER ROWS */}
+<div style={{background:'#fff',borderBottom:'1.5px solid #e0ddd5'}}>
+  <div style={{display:'flex',gap:6,overflowX:'auto',padding:'.5rem 1rem',alignItems:'center',WebkitOverflowScrolling:'touch',msOverflowStyle:'none',scrollbarWidth:'none'}} className="filter-scroll">
+    <span style={s.filterLabel}>Type</span>
+    {CATEGORIES.map(cat=>(
+      <button key={cat} style={s.chip(filter===cat)} onClick={()=>setFilter(cat)}>{cat}</button>
+    ))}
+  </div>
+  <div style={{display:'flex',gap:6,overflowX:'auto',padding:'.35rem 1rem',alignItems:'center',WebkitOverflowScrolling:'touch',msOverflowStyle:'none',scrollbarWidth:'none',borderTop:'1px solid #f0ede6'}} className="filter-scroll">
+    <span style={s.filterLabel}>Gender</span>
+    {[['all','All'],['male','Boys'],['female','Girls']].map(([val,label])=>(
+      <button key={val} style={s.chip(gender===val,'#D85A30')} onClick={()=>setGender(val)}>{label}</button>
+    ))}
+  </div>
+  <div style={{display:'flex',gap:6,overflowX:'auto',padding:'.35rem 1rem .5rem',alignItems:'center',WebkitOverflowScrolling:'touch',msOverflowStyle:'none',scrollbarWidth:'none',borderTop:'1px solid #f0ede6'}} className="filter-scroll">
+    <span style={s.filterLabel}>Area</span>
+    {LOCATIONS.map(loc=>(
+      <button key={loc} style={s.chip(location===loc,'#185FA5')} onClick={()=>setLocation(loc)}>{loc}</button>
+    ))}
+  </div>
+</div>
 
           {/* AGE SLIDER */}
           <div style={{background:'#fff',borderBottom:'1.5px solid #e0ddd5',padding:'.6rem 1rem',display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
