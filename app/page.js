@@ -8,7 +8,7 @@ export default async function Home() {
     .from('listings')
     .select('*')
     .eq('status', 'approved')
-    .order('deadline', { ascending: true })
+    .order('reg_close', { ascending: true })
 
   return <HomeClient listings={listings || []} />
 }
