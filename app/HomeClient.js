@@ -316,7 +316,7 @@ const past = !l.is_rolling && days<0
           <div key={l.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',borderBottom:i<filtered.length-1?'1px solid #f0ede6':'none',opacity:past?0.5:1}}>
             <div style={{width:4,alignSelf:'stretch',background:past?'#e0ddd5':urgent?'#D85A30':CAT_COLORS[l.category?.toLowerCase()]||'#e0ddd5',borderRadius:2,flexShrink:0}}></div>
             <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:13,fontWeight:600,color:'#2C2C2A',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{l.title}</div>
+              <a href={`/programs/${l.slug}`} style={{textDecoration:'none'}}>   <div style={{fontSize:13,fontWeight:600,color:'#2C2C2A',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',cursor:'pointer'}}>{l.title}</div> </a>
               <div style={{display:'flex',gap:8,marginTop:2,alignItems:'center',flexWrap:'wrap'}}>
                 <span style={{fontSize:11,color:past?'#888780':urgencyColor(days),fontWeight:600}}>
                   {past?'Closed':urgent?`🔥 ${days}d left`:`${formatDateShort(l.deadline)}`}
@@ -416,9 +416,9 @@ const past = !l.is_rolling && days<0
             )}
 
             {filtered.map(l=>{
-              const days=daysUntil(l.deadline)
-              const urgent=days<=9&&days>=0
-              const past=days<0
+              const days = l.is_rolling ? 999 : daysUntil(l.reg_close || l.deadline)
+const urgent = days<=9&&days>=0
+const past = !l.is_rolling && days<0
               const isExpanded=expanded[l.id]
               return (
                 <div key={l.id} style={{...s.card,opacity:past?0.6:1,borderLeft:`3px solid ${past?'#e0ddd5':urgent?'#D85A30':CAT_COLORS[l.category?.toLowerCase()]||'#e0ddd5'}`}}>
@@ -437,7 +437,7 @@ const past = !l.is_rolling && days<0
                   </div>
 
                   {/* TITLE + ORG */}
-                  <div style={s.cardTitle}>{l.title}</div>
+                  <a href={`/programs/${l.slug}`} style={{textDecoration:'none'}}>   <div style={{...s.cardTitle, cursor:'pointer'}}>{l.title}</div> </a>
                   <div style={s.cardOrg}>{l.org_name}{l.location?` · ${l.location}`:''}</div>
 
                   {/* KEY META */}
@@ -445,8 +445,7 @@ const past = !l.is_rolling && days<0
                     <span style={s.metaItem(urgent&&!past)}>
                       {past?'🔒 Closed':'⏰'} {l.is_rolling ? 'Rolling enrollment' : <>Reg. closes <strong style={{marginLeft:2}}>{formatDateShort(l.reg_close || l.deadline)}</strong></>}
 {l.program_start && <span style={{marginLeft:6,color:'#888780'}}>· {formatDateShort(l.program_start)}{l.program_end ? ` – ${formatDateShort(l.program_end)}` : ''}</span>}
-{l.program_start && <span style={{marginLeft:6, color:'#888780'}}>· Starts {formatDateShort(l.program_start)}</span>}
-                      {!past&&<span style={{color:urgencyColor(days),marginLeft:4,fontWeight:600}}>({days}d)</span>}
+                      {!past&&!l.is_rolling&&<span style={{color:urgencyColor(days),marginLeft:4,fontWeight:600}}>({days}d)</span>}
                     </span>
                     {l.ages&&<span style={s.metaItem(false)}>👥 {l.ages}</span>}
                     {l.cost_free
@@ -558,7 +557,7 @@ const past = !l.is_rolling && days<0
                   <div style={{display:'flex',alignItems:'center',gap:10,flex:1,minWidth:0}}>
                     <div style={{width:8,height:8,borderRadius:'50%',background:CAT_COLORS[l.category?.toLowerCase()]||'#888',flexShrink:0}}></div>
                     <div style={{minWidth:0}}>
-                      <div style={{fontSize:13,fontWeight:600,color:'#2C2C2A',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{l.title}</div>
+                      <a href={`/programs/${l.slug}`} style={{textDecoration:'none'}}>   <div style={{fontSize:13,fontWeight:600,color:'#2C2C2A',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',cursor:'pointer'}}>{l.title}</div> </a>
                       <div style={{fontSize:11,color:'#888780'}}>{l.org_name}</div>
                     </div>
                   </div>
