@@ -21,5 +21,17 @@ export async function POST(req) {
     confirmed: false,
   }])
   if (error) return NextResponse.json({ error }, { status: 500 })
-  return NextResponse.json({ success: true })
+
+await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://yourkidcal.com'}/api/notify/welcome`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email: body.email,
+    name: body.name,
+    categories: body.categories,
+    locations: body.locations,
+  })
+})
+
+return NextResponse.json({ success: true })
 }
