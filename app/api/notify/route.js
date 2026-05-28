@@ -6,9 +6,16 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 )
 
+export async function GET() {
+  return runNotifications(['deadline_1', 'deadline_7', 'deadline_30'])
+}
+
 export async function POST(req) {
   const { type } = await req.json()
+  return runNotifications([type])
+}
 
+async function runNotifications(types) {
   const { data: listings } = await supabase
     .from('listings')
     .select('*')
@@ -44,19 +51,19 @@ export async function POST(req) {
     const matched = listings.filter(l => matchesSub(l, sub))
     const toSend = []
 
-    if (type === 'deadline_7' && sub.notify_deadline_7) {
-      const urgent = matched.filter(l => daysUntil(l.deadline) === 7)
-      if (urgent.length) toSend.push(...urgent.map(l => ({ listing: l, reason: '7 days' })))
-    }
-
-    if (type === 'deadline_30' && sub.notify_deadline_30) {
-      const upcoming = matched.filter(l => daysUntil(l.deadline) === 30)
-      if (upcoming.length) toSend.push(...upcoming.map(l => ({ listing: l, reason: '30 days' })))
-    }
-
-    if (type === 'deadline_1') {
-      const tomorrow = matched.filter(l => daysUntil(l.deadline) === 1)
-      if (tomorrow.length) toSend.push(...tomorrow.map(l => ({ listing: l, reason: 'tomorrow' })))
+    for (const type of types) {
+      if (type === 'deadline_1') {
+        matched.filter(l => daysUntil(l.deadline) === 1)
+          .forEach(l => toSend.push({ listing: l, reason: 'tomorrow!' }))
+      }
+      if (type === 'deadline_7' && sub.notify_deadline_7) {
+        matched.filter(l => daysUntil(l.deadline) === 7)
+          .forEach(l => toSend.push({ listing: l, reason: '7 days' }))
+      }
+      if (type === 'deadline_30' && sub.notify_deadline_30) {
+        matched.filter(l => daysUntil(l.deadline) === 30)
+          .forEach(l => toSend.push({ listing: l, reason: '30 days' }))
+      }
     }
 
     if (toSend.length > 0) {
@@ -77,7 +84,7 @@ export async function POST(req) {
     }
   }
 
-  return NextResponse.json({ results })
+  return NextResponse.json({ results, total: results.length })
 }
 
 function buildEmail(sub, items) {
@@ -103,10 +110,8 @@ function buildEmail(sub, items) {
     <body style="margin:0;padding:0;background:#F7F3EC;font-family:'Helvetica Neue',Arial,sans-serif">
       <div style="max-width:600px;margin:0 auto;padding:24px 16px">
         <div style="text-align:center;margin-bottom:24px">
-          <div style="display:inline-flex;align-items:center;gap:8px">
-            <span style="font-size:28px">🌞</span>
-            <span style="font-size:22px;font-weight:700;color:#2C2C2A;font-family:Georgia,serif">Your<span style="color:#E8A020">KidCal</span></span>
-          </div>
+          <span style="font-size:28px">🌞</span>
+          <span style="font-size:22px;font-weight:700;color:#2C2C2A;font-family:Georgia,serif;margin-left:8px">Your<span style="color:#E8A020">KidCal</span></span>
         </div>
         <div style="background:#fff;border-radius:12px;padding:24px;margin-bottom:16px;border:1.5px solid #e0ddd5">
           <h1 style="font-size:22px;font-family:Georgia,serif;color:#2C2C2A;margin:0 0 8px">Hey ${name}! ⏰</h1>
