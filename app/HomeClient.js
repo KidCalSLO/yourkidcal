@@ -104,8 +104,8 @@ export default function HomeClient({listings}) {
   }, [notifyOpen, submitOpen, calModal])
 
   const sorted = [...listings].sort((a,b) => {
-    const dA = daysUntil(a.deadline)
-    const dB = daysUntil(b.deadline)
+    const dA = daysUntil(a.reg_close || a.deadline)
+const dB = daysUntil(b.reg_close || b.deadline)
     if (dA >= 0 && dB >= 0) return dA - dB
     if (dA < 0 && dB < 0) return dB - dA
     return dA >= 0 ? -1 : 1
@@ -309,7 +309,7 @@ export default function HomeClient({listings}) {
 
     <div style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:12,overflow:'hidden'}}>
       {filtered.map((l,i)=>{
-        const days=daysUntil(l.deadline)
+        const days=daysUntil(l.reg_close || l.deadline)
         const urgent=days<=9&&days>=0
         const past=days<0
         return (
@@ -443,7 +443,8 @@ export default function HomeClient({listings}) {
                   {/* KEY META */}
                   <div style={s.meta}>
                     <span style={s.metaItem(urgent&&!past)}>
-                      {past?'🔒 Closed':'⏰'} <strong style={{marginLeft:2}}>{formatDateShort(l.deadline)}</strong>
+                      {past?'🔒 Closed':'⏰'} Reg. closes <strong style={{marginLeft:2}}>{formatDateShort(l.reg_close || l.deadline)}</strong>
+{l.program_start && <span style={{marginLeft:6, color:'#888780'}}>· Starts {formatDateShort(l.program_start)}</span>}
                       {!past&&<span style={{color:urgencyColor(days),marginLeft:4,fontWeight:600}}>({days}d)</span>}
                     </span>
                     {l.ages&&<span style={s.metaItem(false)}>👥 {l.ages}</span>}
