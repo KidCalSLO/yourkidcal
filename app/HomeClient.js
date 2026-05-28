@@ -347,8 +347,6 @@ export default function HomeClient({listings}) {
 
 {/* ══ BROWSE TAB ══ */}
 {tab==='browse'&&(
-      {/* ══ BROWSE TAB ══ */}
-      {tab==='browse'&&(
         <>
           {/* FILTERS */}
           <div style={{background:'#fff',borderBottom:'1.5px solid #e0ddd5'}}>
