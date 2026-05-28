@@ -279,11 +279,74 @@ export default function HomeClient({listings}) {
 
       {/* TABS */}
       <div style={s.tabBar}>
-        {[['browse','Browse'],['calendar','Calendar']].map(([id,label])=>(
-          <button key={id} style={s.tabBtn(tab===id)} onClick={()=>setTab(id)}>{label}</button>
-        ))}
+        {[['browse','Browse'],['quick','Quick List'],['calendar','Calendar']].map(([id,label])=>(
+  <button key={id} style={s.tabBtn(tab===id)} onClick={()=>setTab(id)}>{label}</button>
+))}
       </div>
+{/* ══ QUICK LIST TAB ══ */}
+{tab==='quick'&&(
+  <div style={s.main}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'.75rem'}}>
+      <span style={{fontSize:13,color:'#888780',fontWeight:500}}>{filtered.length} program{filtered.length!==1?'s':''}</span>
+      {activeFilterCount>0&&(
+        <button onClick={()=>{setFilter('All');setLocation('All Areas');setGender('all');setAgeMin(0);setAgeMax(18);setSearch('')}}
+          style={{background:'#FAECE7',color:'#D85A30',border:'none',borderRadius:20,padding:'4px 10px',fontSize:11,fontWeight:600,cursor:'pointer'}}>
+          Clear {activeFilterCount} filter{activeFilterCount>1?'s':''}
+        </button>
+      )}
+    </div>
 
+    {filtered.length===0&&(
+      <div style={{textAlign:'center',padding:'2rem',color:'#888780',background:'#fff',borderRadius:12,border:'1.5px solid #e0ddd5'}}>
+        <div style={{fontSize:28,marginBottom:6}}>🔍</div>
+        <div style={{fontWeight:600,color:'#2C2C2A',marginBottom:4}}>No programs match</div>
+        <button onClick={()=>{setFilter('All');setLocation('All Areas');setGender('all');setAgeMin(0);setAgeMax(18);setSearch('')}}
+          style={{background:'#E8A020',color:'#fff',border:'none',borderRadius:8,padding:'7px 14px',fontSize:13,fontWeight:600,cursor:'pointer',marginTop:8}}>
+          Clear filters
+        </button>
+      </div>
+    )}
+
+    <div style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:12,overflow:'hidden'}}>
+      {filtered.map((l,i)=>{
+        const days=daysUntil(l.deadline)
+        const urgent=days<=9&&days>=0
+        const past=days<0
+        return (
+          <div key={l.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',borderBottom:i<filtered.length-1?'1px solid #f0ede6':'none',opacity:past?0.5:1}}>
+            <div style={{width:4,alignSelf:'stretch',background:past?'#e0ddd5':urgent?'#D85A30':CAT_COLORS[l.category?.toLowerCase()]||'#e0ddd5',borderRadius:2,flexShrink:0}}></div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:13,fontWeight:600,color:'#2C2C2A',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{l.title}</div>
+              <div style={{display:'flex',gap:8,marginTop:2,alignItems:'center',flexWrap:'wrap'}}>
+                <span style={{fontSize:11,color:past?'#888780':urgencyColor(days),fontWeight:600}}>
+                  {past?'Closed':urgent?`🔥 ${days}d left`:`${formatDateShort(l.deadline)}`}
+                </span>
+                {!past&&<span style={{fontSize:11,color:'#888780'}}>{l.location||'SLO County'}</span>}
+                {l.cost_free
+                  ? <span style={{fontSize:10,fontWeight:700,color:'#3B6D11',background:'#EAF3DE',padding:'1px 6px',borderRadius:8}}>Free</span>
+                  : <span style={{fontSize:11,color:'#888780'}}>${l.cost}</span>
+                }
+              </div>
+            </div>
+            <div style={{display:'flex',gap:6,flexShrink:0,alignItems:'center'}}>
+              <span style={{fontSize:11,fontWeight:600,color:past?'#888780':urgencyColor(days),minWidth:isMobile?0:60,textAlign:'right',display:isMobile?'none':'block'}}>
+                {past?'Closed':`${formatDateShort(l.deadline)}`}
+              </span>
+              {l.registration_url&&!past
+                ? <a href={l.registration_url} target="_blank" rel="noopener noreferrer" style={{background:'#E8A020',color:'#fff',padding:'5px 12px',borderRadius:8,fontSize:12,fontWeight:600,textDecoration:'none',whiteSpace:'nowrap'}}>Register →</a>
+                : past ? <span style={{fontSize:11,color:'#888780',fontStyle:'italic'}}>Closed</span>
+                : <span style={{fontSize:11,color:'#888780'}}>No link</span>
+              }
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  </div>
+)}
+
+{/* ══ BROWSE TAB ══ */}
+{tab==='browse'&&(
       {/* ══ BROWSE TAB ══ */}
       {tab==='browse'&&(
         <>
