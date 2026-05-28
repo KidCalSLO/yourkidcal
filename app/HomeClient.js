@@ -104,8 +104,8 @@ export default function HomeClient({listings}) {
   }, [notifyOpen, submitOpen, calModal])
 
   const sorted = [...listings].sort((a,b) => {
-    const dA = daysUntil(a.reg_close || a.deadline)
-const dB = daysUntil(b.reg_close || b.deadline)
+    const dA = a.is_rolling ? 999 : daysUntil(a.reg_close || a.deadline)
+const dB = b.is_rolling ? 999 : daysUntil(b.reg_close || b.deadline)
     if (dA >= 0 && dB >= 0) return dA - dB
     if (dA < 0 && dB < 0) return dB - dA
     return dA >= 0 ? -1 : 1
@@ -309,9 +309,9 @@ const dB = daysUntil(b.reg_close || b.deadline)
 
     <div style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:12,overflow:'hidden'}}>
       {filtered.map((l,i)=>{
-        const days=daysUntil(l.reg_close || l.deadline)
-        const urgent=days<=9&&days>=0
-        const past=days<0
+        const days = l.is_rolling ? 999 : daysUntil(l.reg_close || l.deadline)
+const urgent = days<=9&&days>=0
+const past = !l.is_rolling && days<0
         return (
           <div key={l.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',borderBottom:i<filtered.length-1?'1px solid #f0ede6':'none',opacity:past?0.5:1}}>
             <div style={{width:4,alignSelf:'stretch',background:past?'#e0ddd5':urgent?'#D85A30':CAT_COLORS[l.category?.toLowerCase()]||'#e0ddd5',borderRadius:2,flexShrink:0}}></div>
@@ -443,7 +443,8 @@ const dB = daysUntil(b.reg_close || b.deadline)
                   {/* KEY META */}
                   <div style={s.meta}>
                     <span style={s.metaItem(urgent&&!past)}>
-                      {past?'🔒 Closed':'⏰'} Reg. closes <strong style={{marginLeft:2}}>{formatDateShort(l.reg_close || l.deadline)}</strong>
+                      {past?'🔒 Closed':'⏰'} {l.is_rolling ? 'Rolling enrollment' : <>Reg. closes <strong style={{marginLeft:2}}>{formatDateShort(l.reg_close || l.deadline)}</strong></>}
+{l.program_start && <span style={{marginLeft:6,color:'#888780'}}>· {formatDateShort(l.program_start)}{l.program_end ? ` – ${formatDateShort(l.program_end)}` : ''}</span>}
 {l.program_start && <span style={{marginLeft:6, color:'#888780'}}>· Starts {formatDateShort(l.program_start)}</span>}
                       {!past&&<span style={{color:urgencyColor(days),marginLeft:4,fontWeight:600}}>({days}d)</span>}
                     </span>
