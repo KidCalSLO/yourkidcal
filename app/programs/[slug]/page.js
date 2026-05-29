@@ -2,7 +2,7 @@ import ClaimForm from './ClaimForm'
 import { supabase } from '../../../lib/supabase'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-
+export const revalidate = 60
 export async function generateStaticParams() {
   const { data } = await supabase
     .from('listings')
