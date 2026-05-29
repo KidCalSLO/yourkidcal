@@ -1,69 +1,8 @@
 import ClaimForm from './ClaimForm'
-  import { supabase } from '../../../lib/supabase'
-import React from 'react'
+import { supabase } from '../../../lib/supabase'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-'use client' // add this only to ClaimForm — keep the page as server component
 
-function ClaimForm({ listingId }) {
-  'use client'
-  const [open, setOpen] = React.useState(false)
-  const [form, setForm] = React.useState({ name: '', title: '', email: '' })
-  const [submitted, setSubmitted] = React.useState(false)
-  const [loading, setLoading] = React.useState(false)
-
-  async function handleClaim() {
-    if (!form.name || !form.email) return
-    setLoading(true)
-    const res = await fetch('/api/claim', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        listing_id: listingId,
-        org_contact_name: form.name,
-        org_contact_title: form.title,
-        email: form.email,
-      }),
-    })
-    setLoading(false)
-    if (res.ok) setSubmitted(true)
-  }
-
-  if (submitted) return (
-    <div style={{background:'#EAF3DE',borderRadius:8,padding:'12px 16px',fontSize:14,color:'#27500A',fontWeight:500}}>
-      ✓ Check your inbox! We sent a verification link to {form.email}
-    </div>
-  )
-
-  if (!open) return (
-    <button onClick={() => setOpen(true)}
-      style={{background:'#2C2C2A',color:'#fff',border:'none',padding:'10px 20px',borderRadius:8,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>
-      ✓ Claim this listing
-    </button>
-  )
-
-  return (
-    <div style={{display:'flex',flexDirection:'column',gap:10}}>
-      {[['Your name *','name','text','e.g. Jane Smith'],['Your title','title','text','e.g. Program Director'],['Work email *','email','email','your@organization.com']].map(([label,key,type,ph])=>(
-        <div key={key}>
-          <label style={{display:'block',fontSize:11,fontWeight:700,color:'#888780',textTransform:'uppercase',letterSpacing:'.4px',marginBottom:4}}>{label}</label>
-          <input type={type} placeholder={ph} value={form[key]} onChange={e=>setForm(f=>({...f,[key]:e.target.value}))}
-            style={{width:'100%',border:'1.5px solid #e0ddd5',borderRadius:8,padding:'9px 12px',fontSize:15,fontFamily:"'DM Sans',sans-serif",background:'#F7F3EC',color:'#2C2C2A',outline:'none',boxSizing:'border-box'}}/>
-        </div>
-      ))}
-      <div style={{display:'flex',gap:8,marginTop:4}}>
-        <button onClick={handleClaim} disabled={loading||!form.name||!form.email}
-          style={{background:'#E8A020',color:'#fff',border:'none',padding:'10px 20px',borderRadius:8,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",opacity:(form.name&&form.email)?1:0.5}}>
-          {loading ? 'Sending...' : 'Send verification email'}
-        </button>
-        <button onClick={()=>setOpen(false)}
-          style={{background:'none',border:'1.5px solid #e0ddd5',padding:'10px 16px',borderRadius:8,fontSize:13,cursor:'pointer',color:'#888780',fontFamily:"'DM Sans',sans-serif"}}>
-          Cancel
-        </button>
-      </div>
-    </div>
-  )
-}
 export async function generateStaticParams() {
   const { data } = await supabase
     .from('listings')
@@ -144,12 +83,12 @@ export default async function ProgramPage({ params }) {
   }
 
   const BADGE_COLORS = {
-    camp: { bg:'#EAF3DE', color:'#3B6D11' },
-    school: { bg:'#E6F1FB', color:'#185FA5' },
-    sport: { bg:'#FAECE7', color:'#D85A30' },
+    camp:    { bg:'#EAF3DE', color:'#3B6D11' },
+    school:  { bg:'#E6F1FB', color:'#185FA5' },
+    sport:   { bg:'#FAECE7', color:'#D85A30' },
     daycare: { bg:'#FAEEDA', color:'#BA7517' },
-    rec: { bg:'#E1F5EE', color:'#0F6E56' },
-    arts: { bg:'#EEEDFE', color:'#534AB7' },
+    rec:     { bg:'#E1F5EE', color:'#0F6E56' },
+    arts:    { bg:'#EEEDFE', color:'#534AB7' },
   }
   const badge = BADGE_COLORS[l.category?.toLowerCase()] || { bg:'#f0ede6', color:'#888780' }
 
@@ -188,7 +127,7 @@ export default async function ProgramPage({ params }) {
             <span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:10,textTransform:'uppercase',letterSpacing:'.4px',background:badge.bg,color:badge.color}}>{l.category}</span>
             {l.cost_free && <span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:10,textTransform:'uppercase',background:'#EAF3DE',color:'#3B6D11'}}>Free</span>}
             {l.is_rolling && <span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:10,textTransform:'uppercase',background:'#E6F1FB',color:'#185FA5'}}>Rolling Enrollment</span>}
-              {l.verified && <span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:10,textTransform:'uppercase',background:'#EAF3DE',color:'#27500A',display:'inline-flex',alignItems:'center',gap:4}}>✓ Verified by Organization</span>}
+            {l.verified && <span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:10,textTransform:'uppercase',background:'#EAF3DE',color:'#27500A',display:'inline-flex',alignItems:'center',gap:4}}>✓ Verified by Organization</span>}
           </div>
           <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:700,color:'#2C2C2A',margin:'0 0 8px',lineHeight:1.2}}>{l.title}</h1>
           <div style={{fontSize:15,color:'#888780',marginBottom:'1.25rem'}}>{l.org_name}{l.location ? ` · ${l.location}` : ''}</div>
@@ -246,14 +185,16 @@ export default async function ProgramPage({ params }) {
             </div>
           </div>
         )}
-{/* CLAIM LISTING */}
-{!l.verified && (
-  <div style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:12,padding:'1.5rem',marginBottom:'1.5rem'}}>
-    <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,margin:'0 0 8px',color:'#2C2C2A'}}>Do you represent this organization?</h2>
-    <p style={{fontSize:13,color:'#888780',margin:'0 0 1rem',lineHeight:1.6}}>Claim this listing to get a verified badge and let parents know this information is confirmed by your organization.</p>
-    <ClaimForm listingId={l.id} />
-  </div>
-)}
+
+        {/* CLAIM LISTING */}
+        {!l.verified && (
+          <div style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:12,padding:'1.5rem',marginBottom:'1.5rem'}}>
+            <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,margin:'0 0 8px',color:'#2C2C2A'}}>Do you represent this organization?</h2>
+            <p style={{fontSize:13,color:'#888780',margin:'0 0 1rem',lineHeight:1.6}}>Claim this listing to get a verified badge and let parents know this information is confirmed by your organization.</p>
+            <ClaimForm listingId={l.id} />
+          </div>
+        )}
+
         {/* BACK */}
         <div style={{textAlign:'center',padding:'1rem 0'}}>
           <Link href="/" style={{color:'#185FA5',fontSize:14,fontWeight:500}}>← Back to all SLO County programs</Link>
