@@ -85,8 +85,9 @@ export default function HomeClient({listings}) {
   })
 
   useEffect(() => {
-const check = () => setIsMobile(window.innerWidth < 640)    check()
-    window.addEventListener('resize', check)
+const check = () => setIsMobile(window.innerWidth < 640)
+    check()
+      window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [])
 
