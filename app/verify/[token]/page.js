@@ -1,3 +1,4 @@
+import { revalidatePath } from 'next/cache'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 export const dynamic = 'force-dynamic'
