@@ -10,22 +10,28 @@ const supabase = createClient(
 export async function POST(req) {
   const { listing_id, org_contact_name, org_contact_title, email } = await req.json()
 
+  console.log('CLAIM REQUEST:', { listing_id, org_contact_name, email })
+
   if (!listing_id || !email || !org_contact_name) {
+    console.log('CLAIM ERROR: Missing fields')
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  const { data: listing } = await supabase
+  const { data: listing, error: selectError } = await supabase
     .from('listings')
     .select('title, org_name, verified')
     .eq('id', listing_id)
     .single()
 
+  console.log('LISTING FOUND:', listing, 'SELECT ERROR:', selectError)
+
   if (!listing) return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
   if (listing.verified) return NextResponse.json({ error: 'Already verified' }, { status: 400 })
 
   const token = randomUUID()
+  console.log('TOKEN GENERATED:', token)
 
-  const { error } = await supabase
+  const { error: updateError } = await supabase
     .from('listings')
     .update({
       claim_token: token,
@@ -34,11 +40,16 @@ export async function POST(req) {
     })
     .eq('id', listing_id)
 
-  if (error) return NextResponse.json({ error }, { status: 500 })
+  console.log('UPDATE ERROR:', updateError)
+
+  if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
+
+  console.log('TOKEN SAVED SUCCESSFULLY')
 
   const verifyUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/verify/${token}`
+  console.log('VERIFY URL:', verifyUrl)
 
-  await fetch('https://api.resend.com/emails', {
+  const emailRes = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -69,15 +80,14 @@ export async function POST(req) {
               </div>
               <p style="font-size:13px;color:#888780;text-align:center;margin:0">This link expires in 7 days. If you didn't request this, you can ignore this email.</p>
             </div>
-            <p style="font-size:12px;color:#888780;text-align:center;margin-top:16px">
-              <a href="https://yourkidcal.com" style="color:#E8A020">yourkidcal.com</a>
-            </p>
           </div>
         </body>
         </html>
       `,
     }),
   })
+
+  console.log('EMAIL RESPONSE STATUS:', emailRes.status)
 
   return NextResponse.json({ success: true })
 }
