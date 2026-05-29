@@ -62,6 +62,12 @@ export default function HomeClient({listings}) {
   const [hidePast, setHidePast] = useState(true)
   const [notifyOpen, setNotifyOpen] = useState(false)
   const [notifySubmitted, setNotifySubmitted] = useState(false)
+  const [reviews, setReviews] = useState([])
+const [reviewsLoaded, setReviewsLoaded] = useState(false)
+const [reviewModal, setReviewModal] = useState(null)
+const [reviewForm, setReviewForm] = useState({reviewer_name:'',rating:5,body:''})
+const [reviewSubmitted, setReviewSubmitted] = useState(false)
+const [reviewSearch, setReviewSearch] = useState('')
   const [isMobile, setIsMobile] = useState(false)
   const [notifyForm, setNotifyForm] = useState({
     email:'', name:'',
@@ -159,7 +165,30 @@ const dB = b.is_rolling ? 999 : daysUntil(b.reg_close || b.deadline)
     const res = await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(form)})
     if (res.ok) setSubmitted(true)
   }
+async function fetchReviews() {
+  if (reviewsLoaded) return
+  const res = await fetch('/api/reviews')
+  const data = await res.json()
+  setReviews(data.reviews || [])
+  setReviewsLoaded(true)
+}
 
+async function handleReviewSubmit() {
+  if (!reviewForm.reviewer_name || !reviewForm.body || !reviewModal) return
+  const res = await fetch('/api/reviews', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      listing_id: reviewModal.id,
+      listing_title: reviewModal.title,
+      org_name: reviewModal.org_name,
+      reviewer_name: reviewForm.reviewer_name,
+      rating: reviewForm.rating,
+      review_body: reviewForm.body,
+    })
+  })
+  if (res.ok) setReviewSubmitted(true)
+}
   async function handleNotifySubmit() {
     const res = await fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(notifyForm)})
     if (res.ok) setNotifySubmitted(true)
@@ -279,8 +308,8 @@ const dB = b.is_rolling ? 999 : daysUntil(b.reg_close || b.deadline)
 
       {/* TABS */}
       <div style={s.tabBar}>
-        {[['browse','Browse'],['quick','Quick List'],['calendar','Calendar']].map(([id,label])=>(
-  <button key={id} style={s.tabBtn(tab===id)} onClick={()=>setTab(id)}>{label}</button>
+        {[['browse','Browse'],['quick','Quick List'],['calendar','Calendar'],['reviews','Reviews']].map(([id,label])=>(
+  <button key={id} style={s.tabBtn(tab===id)} onClick={()=>{setTab(id);if(id==='reviews')fetchReviews()}}>{label}</button>
 ))}
       </div>
 {/* ══ QUICK LIST TAB ══ */}
@@ -500,7 +529,138 @@ const past = !l.is_rolling && days<0
           </div>
         </>
       )}
+{/* ══ REVIEWS TAB ══ */}
+{tab==='reviews'&&(
+  <div style={s.main}>
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1rem',flexWrap:'wrap',gap:8}}>
+      <div>
+        <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?18:22,margin:'0 0 4px'}}>Parent Reviews</h2>
+        <p style={{fontSize:13,color:'#888780',margin:0}}>Real experiences from SLO County families</p>
+      </div>
+      <button style={{...s.regBtn,padding:'9px 16px',fontSize:13}} onClick={()=>{setReviewModal('new');setReviewSubmitted(false);setReviewForm({reviewer_name:'',rating:5,body:''})}}>
+        + Write a Review
+      </button>
+    </div>
 
+    {/* SEARCH */}
+    <div style={{position:'relative',marginBottom:'1rem'}}>
+      <input
+        style={{...s.input,paddingLeft:32,fontSize:14}}
+        placeholder="Search reviews by program or org..."
+        value={reviewSearch}
+        onChange={e=>setReviewSearch(e.target.value)}
+      />
+      <span style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',fontSize:14,color:'#888780'}}>🔍</span>
+    </div>
+
+    {/* REVIEWS LIST */}
+    {!reviewsLoaded&&(
+      <div style={{textAlign:'center',padding:'2rem',color:'#888780'}}>Loading reviews...</div>
+    )}
+    {reviewsLoaded&&reviews.length===0&&(
+      <div style={{textAlign:'center',padding:'3rem',background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:12}}>
+        <div style={{fontSize:40,marginBottom:12}}>⭐</div>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,marginBottom:8}}>No reviews yet</div>
+        <div style={{fontSize:13,color:'#888780',marginBottom:16}}>Be the first to review a program!</div>
+        <button style={s.regBtn} onClick={()=>{setReviewModal('new');setReviewSubmitted(false);setReviewForm({reviewer_name:'',rating:5,body:''})}}>Write the first review</button>
+      </div>
+    )}
+    {reviewsLoaded&&reviews.filter(r=>{
+      const q=reviewSearch.toLowerCase()
+      return !q||r.listing_title?.toLowerCase().includes(q)||r.org_name?.toLowerCase().includes(q)||r.body?.toLowerCase().includes(q)
+    }).map(r=>(
+      <div key={r.id} style={{...s.card,marginBottom:10}}>
+        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8,marginBottom:8}}>
+          <div>
+            <div style={{color:'#E8A020',fontSize:18,letterSpacing:2,marginBottom:4}}>
+              {'★'.repeat(r.rating)}{'☆'.repeat(5-r.rating)}
+            </div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,fontWeight:700,color:'#2C2C2A'}}>{r.listing_title}</div>
+            <div style={{fontSize:11,color:'#888780',marginTop:2}}>{r.org_name}</div>
+          </div>
+          <div style={{textAlign:'right',flexShrink:0}}>
+            <div style={{fontSize:12,fontWeight:600,color:'#2C2C2A'}}>{r.reviewer_name}</div>
+            <div style={{fontSize:11,color:'#888780'}}>{new Date(r.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+          </div>
+        </div>
+        <p style={{fontSize:13,color:'#444',lineHeight:1.6,margin:0}}>{r.body}</p>
+      </div>
+    ))}
+
+    {/* REVIEW MODAL — write new */}
+    {reviewModal&&(
+      <div style={s.overlay} onClick={()=>setReviewModal(null)}>
+        <div style={s.submitModal} onClick={e=>e.stopPropagation()}>
+          <div style={{width:40,height:4,background:'#e0ddd5',borderRadius:2,margin:'0 auto 1rem',display:isMobile?'block':'none'}}></div>
+          {reviewSubmitted?(
+            <div style={{textAlign:'center',padding:'2rem 0'}}>
+              <div style={{fontSize:48,marginBottom:12}}>⭐</div>
+              <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:22,marginBottom:8}}>Thanks for your review!</h3>
+              <p style={{color:'#888780',fontSize:14,lineHeight:1.6}}>We'll review it shortly and publish it within 2 business days.</p>
+              <button style={{...s.submitBtn,marginTop:'1.5rem'}} onClick={()=>setReviewModal(null)}>Done</button>
+            </div>
+          ):(
+            <>
+              <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:20,marginBottom:4}}>⭐ Write a Review</h3>
+              <p style={{fontSize:13,color:'#888780',marginBottom:'1.25rem',lineHeight:1.5}}>Share your experience with a program. Reviews are published after a quick check.</p>
+
+              {/* PROGRAM PICKER */}
+              <div style={{marginBottom:'.85rem'}}>
+                <label style={{display:'block',fontSize:12,fontWeight:600,color:'#2C2C2A',marginBottom:4,textTransform:'uppercase',letterSpacing:'.4px'}}>Program *</label>
+                <select style={s.input} onChange={e=>{
+                  const l=listings.find(x=>x.id===e.target.value)
+                  setReviewModal(l||'new')
+                }} value={reviewModal==='new'?'':reviewModal.id}>
+                  <option value="">Select a program...</option>
+                  {[...listings].sort((a,b)=>a.title.localeCompare(b.title)).map(l=>(
+                    <option key={l.id} value={l.id}>{l.title} — {l.org_name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* RATING */}
+              <div style={{marginBottom:'.85rem'}}>
+                <label style={{display:'block',fontSize:12,fontWeight:600,color:'#2C2C2A',marginBottom:6,textTransform:'uppercase',letterSpacing:'.4px'}}>Rating *</label>
+                <div style={{display:'flex',gap:6}}>
+                  {[1,2,3,4,5].map(n=>(
+                    <button key={n} onClick={()=>setReviewForm(f=>({...f,rating:n}))}
+                      style={{fontSize:isMobile?24:28,background:'none',border:'none',cursor:'pointer',color:n<=reviewForm.rating?'#E8A020':'#e0ddd5',padding:'0 2px'}}>
+                      ★
+                    </button>
+                  ))}
+                  <span style={{fontSize:13,color:'#888780',alignSelf:'center',marginLeft:4}}>
+                    {['','Poor','Fair','Good','Great','Excellent'][reviewForm.rating]}
+                  </span>
+                </div>
+              </div>
+
+              {/* NAME */}
+              <div style={{marginBottom:'.85rem'}}>
+                <label style={{display:'block',fontSize:12,fontWeight:600,color:'#2C2C2A',marginBottom:4,textTransform:'uppercase',letterSpacing:'.4px'}}>Your name *</label>
+                <input style={s.input} type="text" placeholder="e.g. Sarah M." value={reviewForm.reviewer_name} onChange={e=>setReviewForm(f=>({...f,reviewer_name:e.target.value}))}/>
+              </div>
+
+              {/* BODY */}
+              <div style={{marginBottom:'1rem'}}>
+                <label style={{display:'block',fontSize:12,fontWeight:600,color:'#2C2C2A',marginBottom:4,textTransform:'uppercase',letterSpacing:'.4px'}}>Your review *</label>
+                <textarea style={{...s.input,minHeight:100,resize:'vertical'}} placeholder="What did your kid think? Was registration easy? Would you recommend it?" value={reviewForm.body} onChange={e=>setReviewForm(f=>({...f,body:e.target.value}))}/>
+              </div>
+
+              <button
+                style={{...s.submitBtn,opacity:(reviewModal!=='new'&&reviewForm.reviewer_name&&reviewForm.body)?1:0.5}}
+                onClick={(reviewModal!=='new'&&reviewForm.reviewer_name&&reviewForm.body)?handleReviewSubmit:undefined}>
+                Submit Review
+              </button>
+              <button style={s.cancelBtn} onClick={()=>setReviewModal(null)}>Cancel</button>
+            </>
+          )}
+        </div>
+      </div>
+    )}
+  </div>
+)}
+
+{/* ══ CALENDAR TAB ══ */}
       {/* ══ CALENDAR TAB ══ */}
       {tab==='calendar'&&(
         <div style={s.main}>
