@@ -154,4 +154,78 @@ export default function AdminPage() {
         {adminTab === 'listings' && (
           <div style={{ background: '#fff', border: '1.5px solid #e0ddd5', borderTop: 'none', borderRadius: '0 0 12px 12px', padding: '1rem' }}>
             <div style={{ display: 'flex', borderBottom: '1.5px solid #e0ddd5', marginBottom: '1rem' }}>
-              {['pendin
+              {['pending', 'approved', 'rejected'].map(st => (
+                <button key={st} style={s.tabBtn(tab === st)} onClick={() => setTab(st)}>
+                  {st.charAt(0).toUpperCase() + st.slice(1)} ({byStatus(st).length})
+                </button>
+              ))}
+            </div>
+            {loading && <div style={{ color: '#888780', padding: '1rem' }}>Loading...</div>}
+            {byStatus(tab).map(l => (
+              <div key={l.id} style={s.card}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{l.title}</div>
+                    <div style={{ fontSize: 12, color: '#888780', marginBottom: 6 }}>{l.org_name} · {l.location} · Ages {l.ages} · {l.cost_free ? 'Free' : `$${l.cost}`}</div>
+                    {l.description && <div style={{ fontSize: 13, color: '#444', marginBottom: 6, lineHeight: 1.5 }}>{l.description}</div>}
+                    <div style={{ fontSize: 12, color: '#888780' }}>
+                      Reg closes: {l.reg_close || l.deadline} · Starts: {l.program_start || '—'} · {l.is_rolling ? 'Rolling enrollment' : ''}
+                    </div>
+                    {l.registration_url && (
+                      <a href={l.registration_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#185FA5' }}>{l.registration_url}</a>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+                    {tab !== 'approved' && <button style={s.btn('#3B6D11')} onClick={() => updateListing(l.id, 'approved')}>✓ Approve</button>}
+                    {tab !== 'rejected' && <button style={s.btn('#888780')} onClick={() => updateListing(l.id, 'rejected')}>✗ Reject</button>}
+                    {tab !== 'pending' && <button style={s.btn('#E8A020')} onClick={() => updateListing(l.id, 'pending')}>↩ Pending</button>}
+                    <button style={s.btn('#D85A30')} onClick={() => deleteListing(l.id)}>🗑 Delete</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {byStatus(tab).length === 0 && !loading && (
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#888780' }}>No {tab} listings</div>
+            )}
+          </div>
+        )}
+
+        {adminTab === 'reviews' && (
+          <div style={{ background: '#fff', border: '1.5px solid #e0ddd5', borderTop: 'none', borderRadius: '0 0 12px 12px', padding: '1rem' }}>
+            <div style={{ display: 'flex', borderBottom: '1.5px solid #e0ddd5', marginBottom: '1rem' }}>
+              {['pending', 'approved', 'rejected'].map(st => (
+                <button key={st} style={s.tabBtn(reviewTab === st)} onClick={() => setReviewTab(st)}>
+                  {st.charAt(0).toUpperCase() + st.slice(1)} ({reviewsByStatus(st).length})
+                </button>
+              ))}
+            </div>
+            {reviewsByStatus(reviewTab).map(r => (
+              <div key={r.id} style={s.card}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      <span style={{ color: '#E8A020', fontSize: 16 }}>{stars(r.rating)}</span>
+                      <span style={{ fontWeight: 600, fontSize: 14 }}>{r.reviewer_name}</span>
+                      <span style={{ fontSize: 11, color: '#888780' }}>{new Date(r.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#185FA5', marginBottom: 6 }}>{r.listing_title} · {r.org_name}</div>
+                    <div style={{ fontSize: 14, color: '#2C2C2A', lineHeight: 1.6 }}>{r.body}</div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+                    {reviewTab !== 'approved' && <button style={s.btn('#3B6D11')} onClick={() => updateReview(r.id, 'approved')}>✓ Approve</button>}
+                    {reviewTab !== 'rejected' && <button style={s.btn('#888780')} onClick={() => updateReview(r.id, 'rejected')}>✗ Reject</button>}
+                    {reviewTab !== 'pending' && <button style={s.btn('#E8A020')} onClick={() => updateReview(r.id, 'pending')}>↩ Pending</button>}
+                    <button style={s.btn('#D85A30')} onClick={() => deleteReview(r.id)}>🗑 Delete</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {reviewsByStatus(reviewTab).length === 0 && (
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#888780' }}>No {reviewTab} reviews</div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
