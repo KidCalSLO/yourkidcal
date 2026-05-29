@@ -1,4 +1,5 @@
-import { supabase } from '../../../lib/supabase'
+import ClaimForm from './ClaimForm'
+  import { supabase } from '../../../lib/supabase'
 import React from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
