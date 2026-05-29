@@ -458,7 +458,8 @@ const past = !l.is_rolling && days<0
                       {l.gender&&l.gender!=='both'&&<span style={{fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:10,textTransform:'uppercase',background:'#FAECE7',color:'#D85A30'}}>{l.gender==='male'?'Boys':'Girls'}</span>}
                       {urgent&&!past&&<span style={{fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:10,textTransform:'uppercase',background:'#FAECE7',color:'#D85A30'}}>🔥 Urgent</span>}
                       {past&&<span style={{fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:10,textTransform:'uppercase',background:'#f0ede6',color:'#888780'}}>Closed</span>}
-                    </div>
+                    {l.verified&&<span style={{fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:10,textTransform:'uppercase',background:'#EAF3DE',color:'#27500A',display:'inline-flex',alignItems:'center',gap:3}}>✓ Verified</span>}
+                      </div>
                     <div style={{display:'flex',gap:4,flexShrink:0}}>
                       <button style={{background:isSaved(l.id)?'#EAF3DE':'none',border:isSaved(l.id)?'1.5px solid #3B6D11':'1.5px solid #e0ddd5',color:isSaved(l.id)?'#3B6D11':'#888780',borderRadius:6,width:28,height:28,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:13}} onClick={()=>toggleSave(l)}>🔖</button>
                       <button style={{background:'none',border:'1.5px solid #e0ddd5',color:'#888780',borderRadius:6,width:28,height:28,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:13}} onClick={()=>setCalModal(l)}>📅</button>
@@ -718,7 +719,8 @@ const past = !l.is_rolling && days<0
                     <div style={{width:8,height:8,borderRadius:'50%',background:CAT_COLORS[l.category?.toLowerCase()]||'#888',flexShrink:0}}></div>
                     <div style={{minWidth:0}}>
                       <a href={`/programs/${l.slug}`} style={{textDecoration:'none'}}>   <div style={{fontSize:13,fontWeight:600,color:'#2C2C2A',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',cursor:'pointer'}}>{l.title}</div> </a>
-                      <div style={{fontSize:11,color:'#888780'}}>{l.org_name}</div>
+                      {l.verified&&<span style={{fontSize:10,fontWeight:700,padding:'1px 6px',borderRadius:8,background:'#EAF3DE',color:'#27500A',marginLeft:4}}>✓ Verified</span>}
+              <div style={{fontSize:11,color:'#888780'}}>{l.org_name}</div>
                     </div>
                   </div>
                   <div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
