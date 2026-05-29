@@ -267,6 +267,9 @@ async function handleReviewSubmit() {
         .filter-scroll > * { display: inline-flex; flex-shrink: 0; }
         a { color: inherit; text-decoration: none; }
         button { -webkit-tap-highlight-color: transparent; }
+        .listing-card { transition: border-color .15s, box-shadow .15s; }
+.listing-card:hover { border-color: #c8c4bc !important; box-shadow: 0 2px 12px rgba(44,44,42,.08); }
+.register-btn:hover { background: #c8780f !important; }
       `}</style>
 
       {/* NAV */}
@@ -444,71 +447,84 @@ const past = !l.is_rolling && days<0
               </div>
             )}
 
-            {filtered.map(l=>{
-              const days = l.is_rolling ? 999 : daysUntil(l.reg_close || l.deadline)
-const urgent = days<=9&&days>=0
-const past = !l.is_rolling && days<0
-              const isExpanded=expanded[l.id]
-              return (
-                <div key={l.id} style={{...s.card,opacity:past?0.6:1,borderLeft:`3px solid ${past?'#e0ddd5':urgent?'#D85A30':CAT_COLORS[l.category?.toLowerCase()]||'#e0ddd5'}`}}>
-                  {/* TOP ROW */}
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
-                    <div style={{display:'flex',gap:4,flexWrap:'wrap',flex:1,alignItems:'center'}}>
-                      <span style={{fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:10,textTransform:'uppercase',letterSpacing:'.3px',background:BADGE[l.category?.toLowerCase()]?.bg||'#eee',color:BADGE[l.category?.toLowerCase()]?.color||'#666'}}>{l.category}</span>
-                      {l.gender&&l.gender!=='both'&&<span style={{fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:10,textTransform:'uppercase',background:'#FAECE7',color:'#D85A30'}}>{l.gender==='male'?'Boys':'Girls'}</span>}
-                      {urgent&&!past&&<span style={{fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:10,textTransform:'uppercase',background:'#FAECE7',color:'#D85A30'}}>🔥 Urgent</span>}
-                      {past&&<span style={{fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:10,textTransform:'uppercase',background:'#f0ede6',color:'#888780'}}>Closed</span>}
-                    {l.verified&&<span style={{fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:10,textTransform:'uppercase',background:'#EAF3DE',color:'#27500A',display:'inline-flex',alignItems:'center',gap:3}}>✓ Verified</span>}
-                      </div>
-                    <div style={{display:'flex',gap:4,flexShrink:0}}>
-                      <button style={{background:isSaved(l.id)?'#EAF3DE':'none',border:isSaved(l.id)?'1.5px solid #3B6D11':'1.5px solid #e0ddd5',color:isSaved(l.id)?'#3B6D11':'#888780',borderRadius:6,width:28,height:28,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:13}} onClick={()=>toggleSave(l)}>🔖</button>
-                      <button style={{background:'none',border:'1.5px solid #e0ddd5',color:'#888780',borderRadius:6,width:28,height:28,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:13}} onClick={()=>setCalModal(l)}>📅</button>
-                    </div>
-                  </div>
+            {/* DESKTOP 2-COL GRID */}
+<div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'1fr 1fr',gap:10}}>
+{filtered.map(l=>{
+  const days = l.is_rolling ? 999 : daysUntil(l.reg_close || l.deadline)
+  const urgent = days<=9&&days>=0
+  const past = !l.is_rolling && days<0
+  const isExpanded = expanded[l.id]
+  const accentColor = past ? '#e0ddd5' : urgent ? '#D85A30' : CAT_COLORS[l.category?.toLowerCase()] || '#e0ddd5'
+  return (
+    <div key={l.id} className="listing-card" style={{
+      background:'#fff',
+      border:`1.5px solid #e0ddd5`,
+      borderTop:`3px solid ${accentColor}`,
+      borderRadius:12,
+      padding:'1rem 1.125rem',
+      opacity:past?0.65:1,
+      display:'flex',
+      flexDirection:'column',
+      gap:8,
+    }}>
+      {/* TOP ROW — badges + actions */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
+        <div style={{display:'flex',gap:4,flexWrap:'wrap',alignItems:'center'}}>
+          <span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:10,textTransform:'uppercase',letterSpacing:'.3px',background:BADGE[l.category?.toLowerCase()]?.bg||'#eee',color:BADGE[l.category?.toLowerCase()]?.color||'#666'}}>{l.category}</span>
+          {l.gender&&l.gender!=='both'&&<span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:10,textTransform:'uppercase',background:'#FAECE7',color:'#D85A30'}}>{l.gender==='male'?'Boys':'Girls'}</span>}
+          {urgent&&!past&&<span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:10,textTransform:'uppercase',background:'#FAECE7',color:'#D85A30'}}>🔥 Urgent</span>}
+          {past&&<span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:10,textTransform:'uppercase',background:'#f0ede6',color:'#888780'}}>Closed</span>}
+          {l.verified&&<span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:10,textTransform:'uppercase',background:'#EAF3DE',color:'#27500A'}}>✓ Verified</span>}
+        </div>
+        <button style={{background:isSaved(l.id)?'#EAF3DE':'none',border:isSaved(l.id)?'1.5px solid #3B6D11':'1.5px solid #e0ddd5',color:isSaved(l.id)?'#3B6D11':'#888780',borderRadius:6,width:26,height:26,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:12,flexShrink:0}} onClick={()=>toggleSave(l)}>🔖</button>
+      </div>
 
-                  {/* TITLE + ORG */}
-                  <a href={`/programs/${l.slug}`} style={{textDecoration:'none'}}>   <div style={{...s.cardTitle, cursor:'pointer'}}>{l.title}</div> </a>
-                  <div style={s.cardOrg}>{l.org_name}{l.location?` · ${l.location}`:''}</div>
+      {/* TITLE */}
+      <a href={`/programs/${l.slug}`} style={{textDecoration:'none'}}>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?14:15,fontWeight:700,color:'#2C2C2A',lineHeight:1.3,cursor:'pointer'}}>{l.title}</div>
+      </a>
+      <div style={{fontSize:11,color:'#888780',marginTop:-4}}>{l.org_name}{l.location?` · ${l.location}`:''}</div>
 
-                  {/* KEY META */}
-                  <div style={s.meta}>
-                    <span style={s.metaItem(urgent&&!past)}>
-                      {past?'🔒 Closed':'⏰'} {l.is_rolling ? 'Rolling enrollment' : <>Reg. closes <strong style={{marginLeft:2}}>{formatDateShort(l.reg_close || l.deadline)}</strong></>}
-{l.program_start && <span style={{marginLeft:6,color:'#888780'}}>· {formatDateShort(l.program_start)}{l.program_end ? ` – ${formatDateShort(l.program_end)}` : ''}</span>}
-                      {!past&&!l.is_rolling&&<span style={{color:urgencyColor(days),marginLeft:4,fontWeight:600}}>({days}d)</span>}
-                    </span>
-                    {l.ages&&<span style={s.metaItem(false)}>👥 {l.ages}</span>}
-                    {l.cost_free
-                      ? <span style={{fontSize:11,fontWeight:700,color:'#3B6D11',background:'#EAF3DE',padding:'2px 7px',borderRadius:10}}>Free</span>
-                      : <span style={s.metaItem(false)}>💰 ${l.cost?.toLocaleString()}</span>
-                    }
-                  </div>
+      {/* KEY FACTS ROW */}
+      <div style={{display:'flex',flexWrap:'wrap',gap:'6px 14px',fontSize:11,color:'#888780'}}>
+        {!past&&(
+          <span style={{color:urgencyColor(days),fontWeight:600}}>
+            {l.is_rolling ? '↻ Rolling enrollment' : `⏰ ${formatDateShort(l.reg_close||l.deadline)}${!l.is_rolling?` · ${days}d left`:''}`}
+          </span>
+        )}
+        {past&&<span style={{color:'#888780'}}>🔒 Closed</span>}
+        {l.program_start&&<span>▶ {formatDateShort(l.program_start)}{l.program_end?` – ${formatDateShort(l.program_end)}`:''}</span>}
+        {l.ages&&<span>👥 {l.ages}</span>}
+        {l.cost_free
+          ? <span style={{color:'#3B6D11',fontWeight:700,background:'#EAF3DE',padding:'1px 6px',borderRadius:8}}>Free</span>
+          : <span>💰 ${l.cost?.toLocaleString()}</span>
+        }
+      </div>
 
-                  {/* EXPANDABLE DESCRIPTION */}
-                  {l.description&&(
-                    <div>
-                      {isExpanded
-                        ? <p style={{fontSize:12,color:'#888780',lineHeight:1.5,margin:'0 0 6px'}}>{l.description}</p>
-                        : null
-                      }
-                      <button onClick={()=>toggleExpand(l.id)} style={{background:'none',border:'none',color:'#185FA5',fontSize:12,cursor:'pointer',padding:0,fontFamily:"'DM Sans',sans-serif"}}>
-                        {isExpanded?'▲ Less':'▼ More info'}
-                      </button>
-                    </div>
-                  )}
+      {/* DESCRIPTION — expandable */}
+      {l.description&&(
+        <div>
+          {isExpanded&&<p style={{fontSize:12,color:'#666',lineHeight:1.55,margin:'0 0 4px'}}>{l.description}</p>}
+          <button onClick={()=>toggleExpand(l.id)} style={{background:'none',border:'none',color:'#185FA5',fontSize:12,cursor:'pointer',padding:0,fontFamily:"'DM Sans',sans-serif"}}>
+            {isExpanded?'▲ Less':'▼ More info'}
+          </button>
+        </div>
+      )}
 
-                  {/* FOOTER */}
-                  <div style={s.cardFooter}>
-                    <div style={{fontSize:11,color:past?'#888780':urgencyColor(days),fontWeight:600}}>
-                      {past?'Registration closed':`${days} day${days!==1?'s':''} to register`}
-                    </div>
-                    {l.registration_url&&!past&&(
-                      <a href={l.registration_url} target="_blank" rel="noopener noreferrer" style={s.regBtn}>Register →</a>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+      {/* FOOTER */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',paddingTop:8,borderTop:'1px solid #f0ede6',marginTop:'auto'}}>
+        <button style={{background:'none',border:'1.5px solid #e0ddd5',color:'#888780',borderRadius:6,width:26,height:26,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:12}} onClick={()=>setCalModal(l)}>📅</button>
+        {l.registration_url&&!past
+          ? <a href={l.registration_url} target="_blank" rel="noopener noreferrer" className="register-btn" style={{background:'#E8A020',color:'#fff',border:'none',padding:'7px 16px',borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:600,cursor:'pointer',textDecoration:'none',display:'inline-block'}}>Register →</a>
+          : past
+            ? <span style={{fontSize:11,color:'#888780',fontStyle:'italic'}}>Registration closed</span>
+            : <span style={{fontSize:11,color:'#888780'}}>No link yet</span>
+        }
+      </div>
+    </div>
+  )
+})}
+</div>
 
             {saved.length>0&&(
               <div style={{...s.card,marginTop:'1.5rem',borderColor:'#3B6D11',borderLeft:'3px solid #3B6D11'}}>
