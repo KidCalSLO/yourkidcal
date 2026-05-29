@@ -1,15 +1,37 @@
+import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 
-export default async function VerifyPage({ params }) {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_SITE_URL}/api/verify?token=${params.token}`,
-    { cache: 'no-store' }
-  )
-  const data = await res.json()
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+)
 
-  const success = data.success || data.already
-  const title = data.title || 'your listing'
-  const orgName = data.org_name || ''
+export default async function VerifyPage({ params }) {
+  const token = params.token
+
+  const { data: listing } = await supabase
+    .from('listings')
+    .select('id, title, org_name, verified')
+    .eq('claim_token', token)
+    .single()
+
+  let success = false
+  let already = false
+  const title = listing?.title || 'your listing'
+  const orgName = listing?.org_name || ''
+
+  if (listing) {
+    if (listing.verified) {
+      already = true
+      success = true
+    } else {
+      const { error } = await supabase
+        .from('listings')
+        .update({ verified: true, claimed_at: new Date().toISOString() })
+        .eq('claim_token', token)
+      if (!error) success = true
+    }
+  }
 
   return (
     <>
@@ -32,7 +54,7 @@ export default async function VerifyPage({ params }) {
             <>
               <div style={{fontSize:56,marginBottom:16}}>✅</div>
               <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:26,color:'#2C2C2A',margin:'0 0 12px'}}>
-                {data.already ? 'Already verified!' : 'Listing verified!'}
+                {already ? 'Already verified!' : 'Listing verified!'}
               </h1>
               <p style={{fontSize:15,color:'#888780',lineHeight:1.6,margin:'0 0 8px'}}>
                 <strong style={{color:'#2C2C2A'}}>{title}</strong> by {orgName} now shows a verified badge on YourKidCal.
