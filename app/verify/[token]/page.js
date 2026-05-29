@@ -1,6 +1,7 @@
-import { revalidatePath } from 'next/cache'
 import { createClient } from '@supabase/supabase-js'
+import { revalidatePath } from 'next/cache'
 import Link from 'next/link'
+
 export const dynamic = 'force-dynamic'
 
 const supabase = createClient(
@@ -13,7 +14,7 @@ export default async function VerifyPage({ params }) {
 
   const { data: listing } = await supabase
     .from('listings')
-    .select('id, title, org_name, verified')
+    .select('id, title, org_name, verified, slug')
     .eq('claim_token', token)
     .single()
 
@@ -31,7 +32,10 @@ export default async function VerifyPage({ params }) {
         .from('listings')
         .update({ verified: true, claimed_at: new Date().toISOString() })
         .eq('claim_token', token)
-      if (!error) success = true
+      if (!error) {
+        success = true
+        if (listing.slug) revalidatePath(`/programs/${listing.slug}`)
+      }
     }
   }
 
@@ -64,8 +68,8 @@ export default async function VerifyPage({ params }) {
               <p style={{fontSize:14,color:'#888780',lineHeight:1.6,margin:'0 0 24px'}}>
                 Parents across SLO County will see that your listing is confirmed by your organization.
               </p>
-              <Link href="/" style={{background:'#E8A020',color:'#fff',padding:'12px 28px',borderRadius:8,textDecoration:'none',fontSize:15,fontWeight:600,display:'inline-block'}}>
-                View on YourKidCal →
+              <Link href={listing?.slug ? `/programs/${listing.slug}` : '/'} style={{background:'#E8A020',color:'#fff',padding:'12px 28px',borderRadius:8,textDecoration:'none',fontSize:15,fontWeight:600,display:'inline-block'}}>
+                View your verified listing →
               </Link>
             </>
           ) : (
