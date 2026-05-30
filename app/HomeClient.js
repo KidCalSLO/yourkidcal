@@ -332,7 +332,7 @@ const check = () => setIsMobile(window.innerWidth < 640)
 
       {/* ══ BROWSE TAB ══ */}
       {tab==='browse'&&(
-        <div style={{maxWidth:1280,margin:'0 auto',padding:isMobile?0:'0 2rem',display:'flex',alignItems:'flex-start'}}>
+        <div style={{maxWidth:1280,margin:'0 auto',padding:isMobile?0:'0 2rem',display:'flex',flexDirection:isMobile?'column':'row',alignItems:'flex-start'}}>
 
           {/* ── DESKTOP SIDEBAR ── */}
           {!isMobile&&(
