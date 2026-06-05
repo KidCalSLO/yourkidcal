@@ -765,94 +765,120 @@ const filtered = sorted.filter(l => {
         </div>
       )}
 
-      {/* ══ CALENDAR TAB ══ */}
-      {tab==='calendar'&&(
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1.25rem',flexWrap:'wrap',gap:8}}>
-  <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?18:22,margin:0}}>{MONTHS[calMonth]} {calYear}</h3>
-  <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
-    <div style={{display:'flex',border:'1.5px solid #e0ddd5',borderRadius:8,overflow:'hidden',fontSize:12,fontWeight:500}}>
-      <button onClick={()=>setCalView('deadline')} style={{padding:'6px 12px',border:'none',background:calView==='deadline'?'#2C2C2A':'#fff',color:calView==='deadline'?'#fff':'#888780',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",fontSize:12}}>⏰ Reg. Deadline</button>
-      <button onClick={()=>setCalView('program')} style={{padding:'6px 12px',border:'none',borderLeft:'1px solid #e0ddd5',background:calView==='program'?'#2C2C2A':'#fff',color:calView==='program'?'#fff':'#888780',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",fontSize:12}}>▶ Program Dates</button>
+{/* ══ CALENDAR TAB ══ */}
+{tab==='calendar'&&(
+  <div style={s.main}>
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1.25rem',flexWrap:'wrap',gap:8}}>
+      <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?18:22,margin:0}}>
+        {MONTHS[calMonth]} {calYear}
+      </h3>
+
+      <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
+        <div style={{display:'flex',border:'1.5px solid #e0ddd5',borderRadius:8,overflow:'hidden',fontSize:12,fontWeight:500}}>
+          <button onClick={()=>setCalView('deadline')} style={{padding:'6px 12px',border:'none',background:calView==='deadline'?'#2C2C2A':'#fff',color:calView==='deadline'?'#fff':'#888780',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",fontSize:12}}>⏰ Reg. Deadline</button>
+          <button onClick={()=>setCalView('program')} style={{padding:'6px 12px',border:'none',borderLeft:'1px solid #e0ddd5',background:calView==='program'?'#2C2C2A':'#fff',color:calView==='program'?'#fff':'#888780',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",fontSize:12}}>▶ Program Dates</button>
+        </div>
+
+        <button style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontSize:13}} onClick={prevMonth}>←</button>
+        <button style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontSize:13}} onClick={nextMonth}>→</button>
+        <button style={{background:'#2C2C2A',color:'#fff',border:'none',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontSize:12,fontWeight:600}} onClick={()=>downloadIcs(listings)}>⬇ All</button>
+      </div>
     </div>
+
+    <div style={{display:'flex',gap:12,flexWrap:'wrap',marginBottom:'1rem'}}>
+      {Object.entries(CAT_COLORS).map(([cat,color])=>(
+        <div key={cat} style={{display:'flex',alignItems:'center',gap:5,fontSize:11}}>
+          <div style={{width:8,height:8,borderRadius:'50%',background:color}}/>
+          <span style={{color:'#888780',textTransform:'capitalize'}}>{cat}</span>
         </div>
-              <button style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontSize:13}} onClick={prevMonth}>←</button>
-              <button style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontSize:13}} onClick={nextMonth}>→</button>
-              <button style={{background:'#2C2C2A',color:'#fff',border:'none',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontSize:12,fontWeight:600}} onClick={()=>downloadIcs(listings)}>⬇ All</button>
-            </div>
-          </div>
-          <div style={{display:'flex',gap:12,flexWrap:'wrap',marginBottom:'1rem'}}>
-            {Object.entries(CAT_COLORS).map(([cat,color])=>(
-              <div key={cat} style={{display:'flex',alignItems:'center',gap:5,fontSize:11}}>
-                <div style={{width:8,height:8,borderRadius:'50%',background:color}}/>
-                <span style={{color:'#888780',textTransform:'capitalize'}}>{cat}</span>
+      ))}
+    </div>
+
+    <div style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:12,overflow:'hidden'}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',borderBottom:'1.5px solid #e0ddd5'}}>
+        {DAYS.map((d,i)=>(
+          <div key={i} style={{textAlign:'center',padding:'10px 0',fontSize:11,fontWeight:700,color:'#888780'}}>{d}</div>
+        ))}
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)'}}>
+        {Array.from({length:firstDay}).map((_,i)=>(
+          <div key={'e'+i} style={{minHeight:isMobile?48:80,borderRight:'1px solid #f0ede6',borderBottom:'1px solid #f0ede6',background:'#faf9f6'}}/>
+        ))}
+
+        {Array.from({length:daysInMonth}).map((_,i)=>{
+          const day=i+1
+          const dayListings=getListingsForDay(day)
+          const isT=isToday(day)
+
+          return (
+            <div key={day} style={{minHeight:isMobile?48:80,borderRight:'1px solid #f0ede6',borderBottom:'1px solid #f0ede6',padding:isMobile?3:6,background:isT?'#fffbf2':'#fff'}}>
+              <div style={{width:22,height:22,borderRadius:'50%',background:isT?'#E8A020':'transparent',color:isT?'#fff':'#2C2C2A',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:isT?700:400,marginBottom:3}}>
+                {day}
               </div>
-            ))}
-          </div>
-          <div style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:12,overflow:'hidden'}}>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',borderBottom:'1.5px solid #e0ddd5'}}>
-              {DAYS.map((d,i)=><div key={i} style={{textAlign:'center',padding:'10px 0',fontSize:11,fontWeight:700,color:'#888780'}}>{d}</div>)}
-            </div>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)'}}>
-              {Array.from({length:firstDay}).map((_,i)=>(
-                <div key={'e'+i} style={{minHeight:isMobile?48:80,borderRight:'1px solid #f0ede6',borderBottom:'1px solid #f0ede6',background:'#faf9f6'}}/>
-              ))}
-              {Array.from({length:daysInMonth}).map((_,i)=>{
-                const day=i+1
-                const dayListings=getListingsForDay(day)
-                const isT=isToday(day)
-                return (
-                  <div key={day} style={{minHeight:isMobile?48:80,borderRight:'1px solid #f0ede6',borderBottom:'1px solid #f0ede6',padding:isMobile?3:6,background:isT?'#fffbf2':'#fff'}}>
-                    <div style={{width:22,height:22,borderRadius:'50%',background:isT?'#E8A020':'transparent',color:isT?'#fff':'#2C2C2A',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:isT?700:400,marginBottom:3}}>{day}</div>
-                    {dayListings.map(l=>(
-                      <div key={l.id} onClick={()=>setCalModal(l)} style={{background:CAT_COLORS[l.category?.toLowerCase()]||'#888',color:'#fff',borderRadius:3,padding:'1px 4px',fontSize:isMobile?9:10,fontWeight:500,marginBottom:2,cursor:'pointer',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',lineHeight:1.6}}>{isMobile?'●':l.title}</div>
-                    ))}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-          <div style={{marginTop:'1.5rem'}}>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1rem'}}>
-              <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?16:18,margin:0}}>{calView==='deadline'?'All Deadlines':'All Programs'}</h3>
-              <button style={{background:hidePast?'#2C2C2A':'#fff',color:hidePast?'#fff':'#2C2C2A',border:'1.5px solid #e0ddd5',borderRadius:20,padding:'5px 14px',fontSize:12,fontWeight:500,cursor:'pointer'}} onClick={()=>setHidePast(h=>!h)}>
-                {hidePast?'Show Past':'Hide Past'}
-              </button>
-            </div>
-            {listings.filter(l=>{
-  if (calView==='deadline') {
-    return hidePast ? !l.is_rolling&&daysUntil(l.reg_close||l.deadline)>=0 : true
-  } else {
-    return hidePast ? l.program_start && new Date(l.program_end||l.program_start) >= new Date() : !!l.program_start
-  }
-}).sort((a,b)=>{
-  if (calView==='deadline') return new Date(a.reg_close||a.deadline)-new Date(b.reg_close||b.deadline)
-  return new Date(a.program_start)-new Date(b.program_start)
-}).map(l=>{
-  const days = l.is_rolling ? 999 : daysUntil(l.reg_close||l.deadline)
-              return (
-                <div key={l.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'11px 16px',background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:10,marginBottom:8,opacity:days<0?0.5:1,gap:8}}>
-                  <div style={{display:'flex',alignItems:'center',gap:10,flex:1,minWidth:0}}>
-                    <div style={{width:8,height:8,borderRadius:'50%',background:CAT_COLORS[l.category?.toLowerCase()]||'#888',flexShrink:0}}/>
-                    <div style={{minWidth:0}}>
-                      <a href={`/programs/${l.slug}`} style={{textDecoration:'none'}}>
-                        <div style={{fontSize:13,fontWeight:600,color:'#2C2C2A',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',cursor:'pointer'}}>{l.title}</div>
-                      </a>
-                      <div style={{fontSize:11,color:'#888780'}}>{l.org_name}</div>
-                    </div>
-                  </div>
-                  <div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
-                    <div style={{textAlign:'right'}}>
-                      <div style={{fontSize:12,fontWeight:600,color:days<0?'#888780':urgencyColor(days)}}>{l.is_rolling?'Rolling':formatDateShort(l.reg_close||l.deadline)}</div>
-                      <div style={{fontSize:10,color:days<0?'#888780':urgencyColor(days)}}>{days<0?'Closed':l.is_rolling?'Enroll anytime':`${days}d left`}</div>
-                    </div>
-                    <button style={{background:'#E8A020',color:'#fff',border:'none',borderRadius:8,padding:'5px 12px',fontSize:12,fontWeight:600,cursor:'pointer'}} onClick={()=>setCalModal(l)}>+</button>
-                  </div>
+
+              {dayListings.map(l=>(
+                <div key={l.id} onClick={()=>setCalModal(l)} style={{background:CAT_COLORS[l.category?.toLowerCase()]||'#888',color:'#fff',borderRadius:3,padding:'1px 4px',fontSize:isMobile?9:10,fontWeight:500,marginBottom:2,cursor:'pointer',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',lineHeight:1.6}}>
+                  {isMobile?'●':l.title}
                 </div>
-              )
-            })}
+              ))}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+
+    <div style={{marginTop:'1.5rem'}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1rem'}}>
+        <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?16:18,margin:0}}>
+          {calView==='deadline'?'All Deadlines':'All Programs'}
+        </h3>
+        <button style={{background:hidePast?'#2C2C2A':'#fff',color:hidePast?'#fff':'#2C2C2A',border:'1.5px solid #e0ddd5',borderRadius:20,padding:'5px 14px',fontSize:12,fontWeight:500,cursor:'pointer'}} onClick={()=>setHidePast(h=>!h)}>
+          {hidePast?'Show Past':'Hide Past'}
+        </button>
+      </div>
+
+      {listings.filter(l=>{
+        if (calView==='deadline') {
+          return hidePast ? !l.is_rolling&&daysUntil(l.reg_close||l.deadline)>=0 : true
+        } else {
+          return hidePast ? l.program_start && new Date(l.program_end||l.program_start) >= new Date() : !!l.program_start
+        }
+      }).sort((a,b)=>{
+        if (calView==='deadline') return new Date(a.reg_close||a.deadline)-new Date(b.reg_close||b.deadline)
+        return new Date(a.program_start)-new Date(b.program_start)
+      }).map(l=>{
+        const days = l.is_rolling ? 999 : daysUntil(l.reg_close||l.deadline)
+
+        return (
+          <div key={l.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'11px 16px',background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:10,marginBottom:8,opacity:days<0?0.5:1,gap:8}}>
+            <div style={{display:'flex',alignItems:'center',gap:10,flex:1,minWidth:0}}>
+              <div style={{width:8,height:8,borderRadius:'50%',background:CAT_COLORS[l.category?.toLowerCase()]||'#888',flexShrink:0}}/>
+              <div style={{minWidth:0}}>
+                <a href={`/programs/${l.slug}`} style={{textDecoration:'none'}}>
+                  <div style={{fontSize:13,fontWeight:600,color:'#2C2C2A',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',cursor:'pointer'}}>{l.title}</div>
+                </a>
+                <div style={{fontSize:11,color:'#888780'}}>{l.org_name}</div>
+              </div>
+            </div>
+
+            <div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
+              <div style={{textAlign:'right'}}>
+                <div style={{fontSize:12,fontWeight:600,color:days<0?'#888780':urgencyColor(days)}}>
+                  {l.is_rolling?'Rolling':formatDateShort(l.reg_close||l.deadline)}
+                </div>
+                <div style={{fontSize:10,color:days<0?'#888780':urgencyColor(days)}}>
+                  {days<0?'Closed':l.is_rolling?'Enroll anytime':`${days}d left`}
+                </div>
+              </div>
+              <button style={{background:'#E8A020',color:'#fff',border:'none',borderRadius:8,padding:'5px 12px',fontSize:12,fontWeight:600,cursor:'pointer'}} onClick={()=>setCalModal(l)}>+</button>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })}
+    </div>
+  </div>
+)}
 
       {/* ── CAL MODAL ── */}
       {calModal&&(
