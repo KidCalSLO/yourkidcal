@@ -774,6 +774,7 @@ const filtered = sorted.filter(l => {
       <button onClick={()=>setCalView('deadline')} style={{padding:'6px 12px',border:'none',background:calView==='deadline'?'#2C2C2A':'#fff',color:calView==='deadline'?'#fff':'#888780',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",fontSize:12}}>⏰ Reg. Deadline</button>
       <button onClick={()=>setCalView('program')} style={{padding:'6px 12px',border:'none',borderLeft:'1px solid #e0ddd5',background:calView==='program'?'#2C2C2A':'#fff',color:calView==='program'?'#fff':'#888780',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",fontSize:12}}>▶ Program Dates</button>
     </div>
+        </div>
               <button style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontSize:13}} onClick={prevMonth}>←</button>
               <button style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontSize:13}} onClick={nextMonth}>→</button>
               <button style={{background:'#2C2C2A',color:'#fff',border:'none',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontSize:12,fontWeight:600}} onClick={()=>downloadIcs(listings)}>⬇ All</button>
