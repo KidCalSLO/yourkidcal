@@ -60,6 +60,7 @@ export default function HomeClient({listings}) {
   const [submitOpen, setSubmitOpen] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [hidePast, setHidePast] = useState(true)
+  const [hideClosed, setHideClosed] = useState(true)
   const [notifyOpen, setNotifyOpen] = useState(false)
   const [notifySubmitted, setNotifySubmitted] = useState(false)
   const [reviews, setReviews] = useState([])
@@ -117,16 +118,19 @@ const check = () => setIsMobile(window.innerWidth < 640)
     return dA >= 0 ? -1 : 1
   })
 
-  const filtered = sorted.filter(l => {
-    const matchCat = filter === 'All' || l.category.toLowerCase() === filter.toLowerCase()
-    const matchLoc = location === 'All Areas' || (l.location||'').toLowerCase().includes(location.toLowerCase())
-    const matchGender = gender === 'all' || (l.gender||'both') === 'both' || (l.gender||'both') === gender
-    const {min, max} = parseAgeRange(l.ages)
-    const matchAge = min <= ageMax && max >= ageMin
-    const q = search.toLowerCase()
-    const matchQ = !q || l.title.toLowerCase().includes(q) || l.org_name.toLowerCase().includes(q) || (l.location||'').toLowerCase().includes(q)
-    return matchCat && matchLoc && matchGender && matchAge && matchQ
-  })
+const filtered = sorted.filter(l => {
+  const matchCat = filter === 'All' || l.category.toLowerCase() === filter.toLowerCase()
+  const matchLoc = location === 'All Areas' || (l.location||'').toLowerCase().includes(location.toLowerCase())
+  const matchGender = gender === 'all' || (l.gender||'both') === 'both' || (l.gender||'both') === gender
+  const {min, max} = parseAgeRange(l.ages)
+  const matchAge = min <= ageMax && max >= ageMin
+  const q = search.toLowerCase()
+  const matchQ = !q || l.title.toLowerCase().includes(q) || l.org_name.toLowerCase().includes(q) || (l.location||'').toLowerCase().includes(q)
+  const days = l.is_rolling ? 999 : daysUntil(l.reg_close || l.deadline)
+  const isClosed = !l.is_rolling && days < 0
+  const matchOpen = !hideClosed || !isClosed
+  return matchCat && matchLoc && matchGender && matchAge && matchQ && matchOpen
+})
 
   const activeFilterCount = [
     filter !== 'All',
@@ -540,11 +544,14 @@ const check = () => setIsMobile(window.innerWidth < 640)
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',paddingTop:8,borderTop:'1px solid #f0ede6',marginTop:'auto'}}>
                       <button style={{background:'none',border:'1.5px solid #e0ddd5',color:'#888780',borderRadius:6,width:28,height:28,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:13}} onClick={()=>setCalModal(l)}>📅</button>
                       {l.registration_url&&!past
-                        ? <a href={l.registration_url} target="_blank" rel="noopener noreferrer" className="register-btn" style={{background:'#E8A020',color:'#fff',border:'none',padding:'8px 18px',borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:600,cursor:'pointer',textDecoration:'none',display:'inline-block'}}>Register →</a>
-                        : past
-                          ? <span style={{fontSize:11,color:'#888780',fontStyle:'italic'}}>Registration closed</span>
-                          : <span style={{fontSize:11,color:'#888780'}}>No link yet</span>
-                      }
+  ? <a href={l.registration_url} target="_blank" rel="noopener noreferrer" className="register-btn"
+      style={{background:l.is_rolling?'#185FA5':'#E8A020',color:'#fff',border:'none',padding:'8px 18px',borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:600,cursor:'pointer',textDecoration:'none',display:'inline-block'}}>
+      {l.is_rolling?'Enroll →':'Register →'}
+    </a>
+  : past
+    ? <span style={{fontSize:11,color:'#888780',fontStyle:'italic'}}>Registration closed</span>
+    : <span style={{fontSize:11,color:'#888780'}}>No link yet</span>
+}
                     </div>
                   </div>
                 )
@@ -577,7 +584,16 @@ const check = () => setIsMobile(window.innerWidth < 640)
       {tab==='quick'&&(
         <div style={s.main}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'.75rem'}}>
-            <span style={{fontSize:13,color:'#888780',fontWeight:500}}>{filtered.length} program{filtered.length!==1?'s':''}</span>
+            <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+  <span style={{fontSize:13,color:'#888780',fontWeight:500}}>
+    {filtered.length} program{filtered.length!==1?'s':''} {activeFilterCount>0?'matched':'found'}
+  </span>
+  <button
+    onClick={()=>setHideClosed(h=>!h)}
+    style={{background:hideClosed?'#2C2C2A':'#fff',color:hideClosed?'#fff':'#2C2C2A',border:'1.5px solid #e0ddd5',borderRadius:20,padding:'3px 12px',fontSize:11,fontWeight:500,cursor:'pointer'}}>
+    {hideClosed?'Show closed':'Hide closed'}
+  </button>
+</div>
             {activeFilterCount>0&&(
               <button onClick={clearFilters} style={{background:'#FAECE7',color:'#D85A30',border:'none',borderRadius:20,padding:'4px 10px',fontSize:11,fontWeight:600,cursor:'pointer'}}>
                 Clear {activeFilterCount} filter{activeFilterCount>1?'s':''}
@@ -623,10 +639,14 @@ const check = () => setIsMobile(window.innerWidth < 640)
                       {past?'Closed':formatDateShort(l.reg_close||l.deadline)}
                     </span>
                     {l.registration_url&&!past
-                      ? <a href={l.registration_url} target="_blank" rel="noopener noreferrer" style={{background:'#E8A020',color:'#fff',padding:'6px 14px',borderRadius:8,fontSize:12,fontWeight:600,textDecoration:'none',whiteSpace:'nowrap'}}>Register →</a>
-                      : past ? <span style={{fontSize:11,color:'#888780',fontStyle:'italic'}}>Closed</span>
-                      : <span style={{fontSize:11,color:'#888780'}}>No link</span>
-                    }
+  ? <a href={l.registration_url} target="_blank" rel="noopener noreferrer" className="register-btn"
+      style={{background:l.is_rolling?'#185FA5':'#E8A020',color:'#fff',border:'none',padding:'8px 18px',borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:600,cursor:'pointer',textDecoration:'none',display:'inline-block'}}>
+      {l.is_rolling?'Enroll →':'Register →'}
+    </a>
+  : past
+    ? <span style={{fontSize:11,color:'#888780',fontStyle:'italic'}}>Registration closed</span>
+    : <span style={{fontSize:11,color:'#888780'}}>No link yet</span>
+}
                   </div>
                 </div>
               )
