@@ -18,7 +18,49 @@ const CAT_COLORS = {
   camp:'#3B6D11',school:'#185FA5',sport:'#D85A30',
   daycare:'#BA7517',rec:'#0F6E56',arts:'#534AB7'
 }
+function runAiSearch(query, listings) {
+  const q = query.toLowerCase()
 
+  let results = listings
+
+  if (q.includes('free')) {
+    results = results.filter(
+      l => l.cost_free || Number(l.cost || 0) === 0
+    )
+  }
+
+  if (q.includes('camp')) {
+    results = results.filter(
+      l => (l.category || '').toLowerCase().includes('camp')
+    )
+  }
+
+  if (q.includes('sport') || q.includes('soccer') || q.includes('basketball')) {
+    results = results.filter(
+      l => (l.category || '').toLowerCase().includes('sport')
+    )
+  }
+
+  if (q.includes('slo')) {
+    results = results.filter(
+      l => (l.location || '').toLowerCase().includes('san luis obispo')
+    )
+  }
+
+  if (q.includes('nipomo')) {
+    results = results.filter(
+      l => (l.location || '').toLowerCase().includes('nipomo')
+    )
+  }
+
+  if (q.includes('paso')) {
+    results = results.filter(
+      l => (l.location || '').toLowerCase().includes('paso')
+    )
+  }
+
+  return results
+}
 function daysUntil(dateStr) {
   const today = new Date(); today.setHours(0,0,0,0)
   return Math.round((new Date(dateStr) - today) / 86400000)
@@ -54,6 +96,9 @@ export default function HomeClient({listings}) {
   const [ageMin, setAgeMin] = useState(0)
   const [ageMax, setAgeMax] = useState(18)
   const [search, setSearch] = useState('')
+  const [aiSearch, setAiSearch] = useState('')
+const [aiMode, setAiMode] = useState(false)
+const [aiMessage, setAiMessage] = useState('')
   const [saved, setSaved] = useState([])
   const [expanded, setExpanded] = useState({})
   const [calModal, setCalModal] = useState(null)
@@ -119,7 +164,7 @@ const check = () => setIsMobile(window.innerWidth < 640)
     return dA >= 0 ? -1 : 1
   })
 
-const filtered = sorted.filter(l => {
+const filtered = (aiMode && aiSearch ? runAiSearch(aiSearch, sorted) : sorted).filter(l => {
   const matchCat = filter === 'All' || l.category.toLowerCase() === filter.toLowerCase()
   const matchLoc = location === 'All Areas' || (l.location||'').toLowerCase().includes(location.toLowerCase())
   const matchGender = gender === 'all' || (l.gender||'both') === 'both' || (l.gender||'both') === gender
@@ -331,6 +376,72 @@ const filtered = sorted.filter(l => {
                 value={search}
                 onChange={e=>setSearch(e.target.value)}
               />
+                  <div style={{marginTop:12}}>
+  <div style={{fontSize:12,fontWeight:600,color:'#666',marginBottom:6}}>
+    AI Search Beta
+  </div>
+
+  <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+    <input
+      type="text"
+      placeholder="Try: free camps in Nipomo, basketball in Paso, toddler programs..."
+      value={aiSearch}
+      onChange={(e)=>setAiSearch(e.target.value)}
+      style={{
+        flex:1,
+        minWidth:250,
+        padding:'10px 12px',
+        border:'1.5px solid #ddd',
+        borderRadius:8
+      }}
+    />
+
+    <button
+      onClick={()=>{
+        setAiMode(true)
+        setAiMessage(`Showing results for: ${aiSearch}`)
+      }}
+      style={{
+        background:'#E8A020',
+        color:'#fff',
+        border:'none',
+        borderRadius:8,
+        padding:'10px 16px',
+        fontWeight:600,
+        cursor:'pointer'
+      }}
+    >
+      AI Search
+    </button>
+
+    <button
+      onClick={()=>{
+        setAiMode(false)
+        setAiSearch('')
+        setAiMessage('')
+      }}
+      style={{
+        background:'#fff',
+        border:'1px solid #ddd',
+        borderRadius:8,
+        padding:'10px 16px',
+        cursor:'pointer'
+      }}
+    >
+      Clear
+    </button>
+  </div>
+
+  {aiMessage && (
+    <div style={{
+      marginTop:8,
+      fontSize:12,
+      color:'#666'
+    }}>
+      {aiMessage}
+    </div>
+  )}
+</div>
               <span style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',fontSize:14,color:'#888780'}}>🔍</span>
             </div>
           </div>
