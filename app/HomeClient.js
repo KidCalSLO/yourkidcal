@@ -60,6 +60,7 @@ export default function HomeClient({listings}) {
   const [submitOpen, setSubmitOpen] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [hidePast, setHidePast] = useState(true)
+  const [calView, setCalView] = useState('deadline')
   const [hideClosed, setHideClosed] = useState(true)
   const [notifyOpen, setNotifyOpen] = useState(false)
   const [notifySubmitted, setNotifySubmitted] = useState(false)
@@ -217,11 +218,20 @@ const filtered = sorted.filter(l => {
     }
   }
   function getListingsForDay(day) {
-    return listings.filter(l => {
+  return listings.filter(l => {
+    if (calView === 'deadline') {
       const d = new Date(l.reg_close || l.deadline)
       return d.getFullYear()===calYear && d.getMonth()===calMonth && d.getDate()===day
-    })
-  }
+    } else {
+      // Show on every day the program runs
+      if (!l.program_start) return false
+      const start = new Date(l.program_start)
+      const end = l.program_end ? new Date(l.program_end) : start
+      const check = new Date(calYear, calMonth, day)
+      return check >= start && check <= end
+    }
+  })
+}
   function isToday(day) {
     return day===today.getDate() && calMonth===today.getMonth() && calYear===today.getFullYear()
   }
@@ -757,10 +767,13 @@ const filtered = sorted.filter(l => {
 
       {/* ══ CALENDAR TAB ══ */}
       {tab==='calendar'&&(
-        <div style={s.main}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1.25rem',flexWrap:'wrap',gap:8}}>
-            <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?18:22,margin:0}}>{MONTHS[calMonth]} {calYear}</h3>
-            <div style={{display:'flex',gap:6}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1.25rem',flexWrap:'wrap',gap:8}}>
+  <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?18:22,margin:0}}>{MONTHS[calMonth]} {calYear}</h3>
+  <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
+    <div style={{display:'flex',border:'1.5px solid #e0ddd5',borderRadius:8,overflow:'hidden',fontSize:12,fontWeight:500}}>
+      <button onClick={()=>setCalView('deadline')} style={{padding:'6px 12px',border:'none',background:calView==='deadline'?'#2C2C2A':'#fff',color:calView==='deadline'?'#fff':'#888780',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",fontSize:12}}>⏰ Reg. Deadline</button>
+      <button onClick={()=>setCalView('program')} style={{padding:'6px 12px',border:'none',borderLeft:'1px solid #e0ddd5',background:calView==='program'?'#2C2C2A':'#fff',color:calView==='program'?'#fff':'#888780',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",fontSize:12}}>▶ Program Dates</button>
+    </div>
               <button style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontSize:13}} onClick={prevMonth}>←</button>
               <button style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontSize:13}} onClick={nextMonth}>→</button>
               <button style={{background:'#2C2C2A',color:'#fff',border:'none',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontSize:12,fontWeight:600}} onClick={()=>downloadIcs(listings)}>⬇ All</button>
@@ -799,13 +812,22 @@ const filtered = sorted.filter(l => {
           </div>
           <div style={{marginTop:'1.5rem'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1rem'}}>
-              <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?16:18,margin:0}}>All Deadlines</h3>
+              <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?16:18,margin:0}}>{calView==='deadline'?'All Deadlines':'All Programs'}</h3>
               <button style={{background:hidePast?'#2C2C2A':'#fff',color:hidePast?'#fff':'#2C2C2A',border:'1.5px solid #e0ddd5',borderRadius:20,padding:'5px 14px',fontSize:12,fontWeight:500,cursor:'pointer'}} onClick={()=>setHidePast(h=>!h)}>
                 {hidePast?'Show Past':'Hide Past'}
               </button>
             </div>
-            {listings.filter(l=>hidePast?!l.is_rolling&&daysUntil(l.reg_close||l.deadline)>=0:true).sort((a,b)=>new Date(a.reg_close||a.deadline)-new Date(b.reg_close||b.deadline)).map(l=>{
-              const days = l.is_rolling ? 999 : daysUntil(l.reg_close||l.deadline)
+            {listings.filter(l=>{
+  if (calView==='deadline') {
+    return hidePast ? !l.is_rolling&&daysUntil(l.reg_close||l.deadline)>=0 : true
+  } else {
+    return hidePast ? l.program_start && new Date(l.program_end||l.program_start) >= new Date() : !!l.program_start
+  }
+}).sort((a,b)=>{
+  if (calView==='deadline') return new Date(a.reg_close||a.deadline)-new Date(b.reg_close||b.deadline)
+  return new Date(a.program_start)-new Date(b.program_start)
+}).map(l=>{
+  const days = l.is_rolling ? 999 : daysUntil(l.reg_close||l.deadline)
               return (
                 <div key={l.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'11px 16px',background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:10,marginBottom:8,opacity:days<0?0.5:1,gap:8}}>
                   <div style={{display:'flex',alignItems:'center',gap:10,flex:1,minWidth:0}}>
