@@ -812,7 +812,7 @@ const filtered = sorted.filter(l => {
           const isT=isToday(day)
 
           return (
-            <div key={day} style={{minHeight:isMobile?48:80,borderRight:'1px solid #f0ede6',borderBottom:'1px solid #f0ede6',padding:isMobile?3:6,background:isT?'#fffbf2':'#fff'}}>
+            <div key={day} style={{height:isMobile?64:100, overflow:'hidden', borderRight:'1px solid #f0ede6',borderBottom:'1px solid #f0ede6',padding:isMobile?3:6,background:isT?'#fffbf2':'#fff'}}>
               <div style={{width:22,height:22,borderRadius:'50%',background:isT?'#E8A020':'transparent',color:isT?'#fff':'#2C2C2A',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:isT?700:400,marginBottom:3}}>
                 {day}
               </div>
