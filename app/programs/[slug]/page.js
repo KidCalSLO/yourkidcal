@@ -122,8 +122,9 @@ export default async function ProgramPage({ params }) {
         </div>
 
         {/* HEADER */}
-        <div style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:12,padding:'1.75rem',marginBottom:'1.5rem',borderLeft:`4px solid ${badge.color}`}}>
+        <div style={{background:l.featured?'#FFFBF2':'#fff',border:l.featured?'1.5px solid #E8A020':'1.5px solid #e0ddd5',borderRadius:12,padding:'1.75rem',marginBottom:'1.5rem',borderLeft:`4px solid ${l.featured?'#E8A020':badge.color}`}}>
           <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
+            {l.featured && <span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:10,textTransform:'uppercase',background:'#E8A020',color:'#fff'}}>★ Featured</span>}
             <span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:10,textTransform:'uppercase',letterSpacing:'.4px',background:badge.bg,color:badge.color}}>{l.category}</span>
             {l.cost_free && <span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:10,textTransform:'uppercase',background:'#EAF3DE',color:'#3B6D11'}}>Free</span>}
             {l.is_rolling && <span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:10,textTransform:'uppercase',background:'#E6F1FB',color:'#185FA5'}}>Rolling Enrollment</span>}

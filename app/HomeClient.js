@@ -84,6 +84,9 @@ export default function HomeClient({listings}) {
     description:'',cost:'',cost_free:false,deadline:'',
     start_date:'',end_date:'',registration_url:'',email:''
   })
+  const [featuredOpen, setFeaturedOpen] = useState(false)
+  const [featuredSubmitted, setFeaturedSubmitted] = useState(false)
+  const [featuredForm, setFeaturedForm] = useState({org_name:'',contact_name:'',email:'',message:''})
 
   useEffect(() => {
 const check = () => setIsMobile(window.innerWidth < 640)
@@ -93,7 +96,7 @@ const check = () => setIsMobile(window.innerWidth < 640)
   }, [])
 
   useEffect(() => {
-    const anyOpen = notifyOpen || submitOpen || !!calModal || !!reviewModal
+    const anyOpen = notifyOpen || submitOpen || !!calModal || !!reviewModal || featuredOpen
     if (anyOpen) {
       const scrollY = window.scrollY
       document.body.style.position = 'fixed'
@@ -108,9 +111,10 @@ const check = () => setIsMobile(window.innerWidth < 640)
       document.body.style.overflowY = ''
       if (scrollY) window.scrollTo(0, parseInt(scrollY || '0') * -1)
     }
-  }, [notifyOpen, submitOpen, calModal, reviewModal])
+  }, [notifyOpen, submitOpen, calModal, reviewModal, featuredOpen])
 
   const sorted = [...listings].sort((a,b) => {
+    if (!!b.featured !== !!a.featured) return (b.featured?1:0) - (a.featured?1:0)
     if (sortBy === 'program') {
       const pA = a.program_start ? new Date(a.program_start).getTime() : Infinity
       const pB = b.program_start ? new Date(b.program_start).getTime() : Infinity
@@ -182,6 +186,12 @@ const filtered = sorted.filter(l => {
   async function handleSubmit() {
     const res = await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(form)})
     if (res.ok) setSubmitted(true)
+  }
+
+  async function handleFeaturedSubmit() {
+    if (!featuredForm.org_name || !featuredForm.contact_name || !featuredForm.email) return
+    const res = await fetch('/api/featured-inquiry',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(featuredForm)})
+    if (res.ok) setFeaturedSubmitted(true)
   }
 
   async function fetchReviews() {
@@ -284,6 +294,7 @@ const filtered = sorted.filter(l => {
         </div>
         <div style={{display:'flex',gap:8}}>
           <button style={s.navBtn('#185FA5')} onClick={()=>setNotifyOpen(true)}>🔔 Alerts</button>
+          <button style={{...s.navBtn('#E8A020')}} onClick={()=>setFeaturedOpen(true)}>★ Get Featured</button>
           <button style={s.navBtn()} onClick={()=>setSubmitOpen(true)}>+ List</button>
         </div>
       </nav>
@@ -483,19 +494,21 @@ const filtered = sorted.filter(l => {
                 const accentColor = past ? '#e0ddd5' : urgent ? '#D85A30' : CAT_COLORS[l.category?.toLowerCase()] || '#e0ddd5'
                 return (
                   <div key={l.id} className="listing-card" style={{
-                    background:'#fff',
-                    border:'1.5px solid #e0ddd5',
-                    borderTop:`3px solid ${accentColor}`,
+                    background:l.featured?'#FFFBF2':'#fff',
+                    border:l.featured?'1.5px solid #E8A020':'1.5px solid #e0ddd5',
+                    borderTop:`3px solid ${l.featured?'#E8A020':accentColor}`,
                     borderRadius:12,
                     padding:'1rem 1.125rem',
                     opacity:past?0.65:1,
                     display:'flex',
                     flexDirection:'column',
                     gap:8,
+                    boxShadow:l.featured?'0 2px 10px rgba(232,160,32,0.15)':'none',
                   }}>
                     {/* BADGES + BOOKMARK */}
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
                       <div style={{display:'flex',gap:4,flexWrap:'wrap',alignItems:'center'}}>
+                        {l.featured&&<span title="Featured listing" style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:10,textTransform:'uppercase',background:'#E8A020',color:'#fff'}}>★ Featured</span>}
                         <span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:10,textTransform:'uppercase',letterSpacing:'.3px',background:BADGE[l.category?.toLowerCase()]?.bg||'#eee',color:BADGE[l.category?.toLowerCase()]?.color||'#666'}}>{catLabel(l.category)}</span>
                         {l.gender&&l.gender!=='both'&&<span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:10,textTransform:'uppercase',background:'#FAECE7',color:'#D85A30'}}>{l.gender==='male'?'Boys':'Girls'}</span>}
                         {urgent&&!past&&<span title="Registration deadline is coming up soon" style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:10,textTransform:'uppercase',background:'#FAECE7',color:'#D85A30'}}>⏰ Deadline soon</span>}
@@ -768,6 +781,39 @@ const filtered = sorted.filter(l => {
       )}
 
       {/* ── SUBMIT MODAL ── */}
+      {featuredOpen&&(
+        <div style={s.overlay} onClick={()=>setFeaturedOpen(false)}>
+          <div style={s.submitModal} onClick={e=>e.stopPropagation()}>
+            <div style={{width:40,height:4,background:'#e0ddd5',borderRadius:2,margin:'0 auto 1rem',display:isMobile?'block':'none'}}/>
+            {featuredSubmitted?(
+              <div style={{textAlign:'center',padding:'2rem 0'}}>
+                <div style={{fontSize:48,marginBottom:12}}>⭐</div>
+                <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:22,marginBottom:8}}>Thanks for your interest!</h3>
+                <p style={{color:'#888780',fontSize:14,lineHeight:1.6}}>We'll follow up by email with featured placement details and pricing.</p>
+                <button style={{...s.submitBtn,marginTop:'1.5rem'}} onClick={()=>{setFeaturedOpen(false);setFeaturedSubmitted(false)}}>Close</button>
+              </div>
+            ):(
+              <>
+                <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:20,marginBottom:4}}>★ Get Featured</h3>
+                <p style={{fontSize:13,color:'#888780',marginBottom:'1.25rem',lineHeight:1.6}}>Featured listings get a highlighted badge and are boosted to the top of search results and category pages. Tell us about your organization and we'll follow up with details.</p>
+                {[['Organization name','org_name','text','e.g. SLO Arts Center'],['Your name','contact_name','text','e.g. Jane Smith'],['Email','email','email','your@email.com']].map(([label,key,type,ph])=>(
+                  <div key={key} style={{marginBottom:'.85rem'}}>
+                    <label style={{display:'block',fontSize:12,fontWeight:600,color:'#2C2C2A',marginBottom:4,textTransform:'uppercase',letterSpacing:'.4px'}}>{label}</label>
+                    <input style={s.input} type={type} placeholder={ph} value={featuredForm[key]} onChange={e=>setFeaturedForm(f=>({...f,[key]:e.target.value}))}/>
+                  </div>
+                ))}
+                <div style={{marginBottom:'.85rem'}}>
+                  <label style={{display:'block',fontSize:12,fontWeight:600,color:'#2C2C2A',marginBottom:4,textTransform:'uppercase',letterSpacing:'.4px'}}>Which listing? (optional)</label>
+                  <textarea style={{...s.input,minHeight:50,resize:'vertical'}} placeholder="Program name, or anything else we should know" value={featuredForm.message} onChange={e=>setFeaturedForm(f=>({...f,message:e.target.value}))}/>
+                </div>
+                <button style={s.submitBtn} onClick={handleFeaturedSubmit}>Request Info</button>
+                <button style={s.cancelBtn} onClick={()=>setFeaturedOpen(false)}>Cancel</button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {submitOpen&&(
         <div style={s.overlay} onClick={()=>setSubmitOpen(false)}>
           <div style={s.submitModal} onClick={e=>e.stopPropagation()}>
