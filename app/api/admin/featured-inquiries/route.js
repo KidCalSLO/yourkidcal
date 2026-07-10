@@ -7,11 +7,11 @@ export async function GET(req) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const { data, error } = await supabaseAdmin
-    .from('reviews')
+    .from('featured_inquiries')
     .select('*')
     .order('created_at', { ascending: false })
   if (error) return NextResponse.json({ error }, { status: 500 })
-  return NextResponse.json({ reviews: data })
+  return NextResponse.json({ inquiries: data })
 }
 
 export async function PATCH(req) {
@@ -20,21 +20,8 @@ export async function PATCH(req) {
   }
   const { id, status } = await req.json()
   const { error } = await supabaseAdmin
-    .from('reviews')
+    .from('featured_inquiries')
     .update({ status })
-    .eq('id', id)
-  if (error) return NextResponse.json({ error }, { status: 500 })
-  return NextResponse.json({ success: true })
-}
-
-export async function DELETE(req) {
-  if (!isAuthorized(req)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-  const { id } = await req.json()
-  const { error } = await supabaseAdmin
-    .from('reviews')
-    .delete()
     .eq('id', id)
   if (error) return NextResponse.json({ error }, { status: 500 })
   return NextResponse.json({ success: true })

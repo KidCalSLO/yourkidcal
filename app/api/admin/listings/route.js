@@ -1,13 +1,12 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { supabaseAdmin } from '../../../../lib/supabaseAdmin'
+import { isAuthorized } from '../../../../lib/adminAuth'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-)
-
-export async function GET() {
-  const { data, error } = await supabase
+export async function GET(req) {
+  if (!isAuthorized(req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  const { data, error } = await supabaseAdmin
     .from('listings')
     .select('*')
     .order('created_at', { ascending: false })
@@ -16,14 +15,19 @@ export async function GET() {
 }
 
 export async function PATCH(req) {
-  const { id, status } = await req.json()
-  const { data: listing } = await supabase
+  if (!isAuthorized(req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  const { id, status, featured } = await req.json()
+  const { data: listing } = await supabaseAdmin
     .from('listings')
     .select('title, org_name, slug')
     .eq('id', id)
     .single()
 
-  const updates = { status }
+  const updates = {}
+  if (status !== undefined) updates.status = status
+  if (featured !== undefined) updates.featured = featured
 
   if (!listing?.slug && listing?.title && listing?.org_name) {
     updates.slug = (listing.title + '-' + listing.org_name)
@@ -34,7 +38,7 @@ export async function PATCH(req) {
       .slice(0, 100)
   }
 
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('listings')
     .update(updates)
     .eq('id', id)
@@ -43,8 +47,11 @@ export async function PATCH(req) {
 }
 
 export async function DELETE(req) {
+  if (!isAuthorized(req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
   const { id } = await req.json()
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('listings')
     .delete()
     .eq('id', id)

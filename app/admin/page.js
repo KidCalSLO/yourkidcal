@@ -7,6 +7,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState('')
   const [listings, setListings] = useState([])
   const [reviews, setReviews] = useState([])
+  const [inquiries, setInquiries] = useState([])
   const [tab, setTab] = useState('pending')
   const [reviewTab, setReviewTab] = useState('pending')
   const [adminTab, setAdminTab] = useState('listings')
@@ -22,6 +23,7 @@ export default function AdminPage() {
       setAuthed(true)
       fetchListings()
       fetchReviews()
+      fetchInquiries()
     } else {
       alert('Wrong password')
     }
@@ -29,23 +31,53 @@ export default function AdminPage() {
 
   async function fetchListings() {
     setLoading(true)
-    const res = await fetch('/api/admin/listings')
+    const res = await fetch('/api/admin/listings', {
+      headers: { 'x-admin-password': password },
+    })
     const data = await res.json()
     setListings(data.listings || [])
     setLoading(false)
   }
 
   async function fetchReviews() {
-    const res = await fetch('/api/admin/reviews')
+    const res = await fetch('/api/admin/reviews', {
+      headers: { 'x-admin-password': password },
+    })
     const data = await res.json()
     setReviews(data.reviews || [])
+  }
+
+  async function fetchInquiries() {
+    const res = await fetch('/api/admin/featured-inquiries', {
+      headers: { 'x-admin-password': password },
+    })
+    const data = await res.json()
+    setInquiries(data.inquiries || [])
+  }
+
+  async function updateInquiry(id, status) {
+    await fetch('/api/admin/featured-inquiries', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+      body: JSON.stringify({ id, status }),
+    })
+    fetchInquiries()
   }
 
   async function updateListing(id, status) {
     await fetch('/api/admin/listings', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
       body: JSON.stringify({ id, status }),
+    })
+    fetchListings()
+  }
+
+  async function toggleFeatured(id, featured) {
+    await fetch('/api/admin/listings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
+      body: JSON.stringify({ id, featured }),
     })
     fetchListings()
   }
@@ -54,7 +86,7 @@ export default function AdminPage() {
     if (!confirm('Delete this listing?')) return
     await fetch('/api/admin/listings', {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
       body: JSON.stringify({ id }),
     })
     fetchListings()
@@ -63,7 +95,7 @@ export default function AdminPage() {
   async function updateReview(id, status) {
     await fetch('/api/admin/reviews', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
       body: JSON.stringify({ id, status }),
     })
     fetchReviews()
@@ -73,7 +105,7 @@ export default function AdminPage() {
     if (!confirm('Delete this review?')) return
     await fetch('/api/admin/reviews', {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': password },
       body: JSON.stringify({ id }),
     })
     fetchReviews()
@@ -130,7 +162,7 @@ export default function AdminPage() {
             🌞 YourKidCal Admin
           </h1>
           <div style={{ fontSize: 13, color: '#888780' }}>
-            {listings.length} listings · {reviews.length} reviews
+            {listings.length} listings · {reviews.length} reviews · {inquiries.filter(i=>i.status==='new').length} new leads
           </div>
         </div>
 
@@ -146,6 +178,13 @@ export default function AdminPage() {
             Reviews{reviews.filter(r => r.status === 'pending').length > 0 && (
               <span style={{ background: '#185FA5', color: '#fff', borderRadius: 10, fontSize: 11, padding: '1px 6px', marginLeft: 6 }}>
                 {reviews.filter(r => r.status === 'pending').length}
+              </span>
+            )}
+          </button>
+          <button style={s.adminTabBtn(adminTab === 'featured')} onClick={() => setAdminTab('featured')}>
+            ★ Featured Leads{inquiries.filter(i => i.status === 'new').length > 0 && (
+              <span style={{ background: '#E8A020', color: '#fff', borderRadius: 10, fontSize: 11, padding: '1px 6px', marginLeft: 6 }}>
+                {inquiries.filter(i => i.status === 'new').length}
               </span>
             )}
           </button>
@@ -165,7 +204,12 @@ export default function AdminPage() {
               <div key={l.id} style={s.card}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{l.title}</div>
+                    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>
+                      {l.title}
+                      {l.featured && (
+                        <span style={{ background: '#E8A020', color: '#fff', borderRadius: 8, fontSize: 10, fontWeight: 700, padding: '2px 7px', marginLeft: 8, verticalAlign: 'middle' }}>★ FEATURED</span>
+                      )}
+                    </div>
                     <div style={{ fontSize: 12, color: '#888780', marginBottom: 6 }}>{l.org_name} · {l.location} · Ages {l.ages} · {l.cost_free ? 'Free' : `$${l.cost}`}</div>
                     {l.description && <div style={{ fontSize: 13, color: '#444', marginBottom: 6, lineHeight: 1.5 }}>{l.description}</div>}
                     <div style={{ fontSize: 12, color: '#888780' }}>
@@ -179,6 +223,9 @@ export default function AdminPage() {
                     {tab !== 'approved' && <button style={s.btn('#3B6D11')} onClick={() => updateListing(l.id, 'approved')}>✓ Approve</button>}
                     {tab !== 'rejected' && <button style={s.btn('#888780')} onClick={() => updateListing(l.id, 'rejected')}>✗ Reject</button>}
                     {tab !== 'pending' && <button style={s.btn('#E8A020')} onClick={() => updateListing(l.id, 'pending')}>↩ Pending</button>}
+                    <button style={s.btn(l.featured ? '#888780' : '#B8860B')} onClick={() => toggleFeatured(l.id, !l.featured)}>
+                      {l.featured ? '☆ Unfeature' : '★ Feature'}
+                    </button>
                     <button style={s.btn('#D85A30')} onClick={() => deleteListing(l.id)}>🗑 Delete</button>
                   </div>
                 </div>
@@ -222,6 +269,31 @@ export default function AdminPage() {
             ))}
             {reviewsByStatus(reviewTab).length === 0 && (
               <div style={{ textAlign: 'center', padding: '2rem', color: '#888780' }}>No {reviewTab} reviews</div>
+            )}
+          </div>
+        )}
+
+        {adminTab === 'featured' && (
+          <div style={{ background: '#fff', border: '1.5px solid #e0ddd5', borderTop: 'none', borderRadius: '0 0 12px 12px', padding: '1rem' }}>
+            <p style={{ fontSize: 13, color: '#888780', margin: '0 0 1rem' }}>Leads from the "★ Get Featured" form. Follow up by email, then mark ★ Feature on their listing in the Listings tab once they're set up.</p>
+            {inquiries.map(i => (
+              <div key={i.id} style={s.card}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 2 }}>{i.org_name}</div>
+                    <div style={{ fontSize: 12, color: '#888780', marginBottom: 6 }}>{i.contact_name} · {i.email} · {new Date(i.created_at).toLocaleDateString()}</div>
+                    {i.message && <div style={{ fontSize: 13, color: '#444', lineHeight: 1.5 }}>{i.message}</div>}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 10, textTransform: 'uppercase', background: i.status === 'new' ? '#FAEEDA' : '#f0ede6', color: i.status === 'new' ? '#BA7517' : '#888780', textAlign: 'center' }}>{i.status}</span>
+                    {i.status !== 'contacted' && <button style={s.btn('#185FA5')} onClick={() => updateInquiry(i.id, 'contacted')}>✓ Mark contacted</button>}
+                    {i.status !== 'new' && <button style={s.btn('#888780')} onClick={() => updateInquiry(i.id, 'new')}>↩ Mark new</button>}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {inquiries.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#888780' }}>No featured leads yet</div>
             )}
           </div>
         )}
