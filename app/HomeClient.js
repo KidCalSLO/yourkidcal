@@ -2,9 +2,11 @@
 import { useState, useEffect } from 'react'
 
 const CATEGORIES = ['All','Camp','School','Sport','Daycare','Rec','Arts']
+const CATEGORY_LABELS = {Rec:'Recreation'}
+const catLabel = (c) => CATEGORY_LABELS[c] || c
 const LOCATIONS = ['All Areas','San Luis Obispo','Arroyo Grande','Paso Robles','Atascadero','Morro Bay','Nipomo','Pismo Beach','Cambria','Countywide']
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
-const DAYS = ['S','M','T','W','T','F','S']
+const SORTS = [['deadline','Deadline (soonest)'],['program','Program date (soonest)']]
+const WHEN_RANGES = [['any','Any time'],['30','Next 30 days'],['90','Next 3 months'],['past90','Beyond 3 months']]
 
 const BADGE = {
   camp:    {bg:'#EAF3DE',color:'#3B6D11'},
@@ -59,9 +61,9 @@ export default function HomeClient({listings}) {
   const [calModal, setCalModal] = useState(null)
   const [submitOpen, setSubmitOpen] = useState(false)
   const [submitted, setSubmitted] = useState(false)
-  const [hidePast, setHidePast] = useState(true)
-  const [calView, setCalView] = useState('deadline')
   const [hideClosed, setHideClosed] = useState(true)
+  const [sortBy, setSortBy] = useState('deadline')
+  const [whenRange, setWhenRange] = useState('any')
   const [notifyOpen, setNotifyOpen] = useState(false)
   const [notifySubmitted, setNotifySubmitted] = useState(false)
   const [reviews, setReviews] = useState([])
@@ -77,9 +79,6 @@ export default function HomeClient({listings}) {
     age_min:0, age_max:18,
     notify_new:true, notify_deadline_7:true, notify_deadline_30:false
   })
-  const today = new Date()
-  const [calMonth, setCalMonth] = useState(today.getMonth())
-  const [calYear, setCalYear] = useState(today.getFullYear())
   const [form, setForm] = useState({
     title:'',org_name:'',category:'Camp',ages:'',location:'',
     description:'',cost:'',cost_free:false,deadline:'',
@@ -112,6 +111,11 @@ const check = () => setIsMobile(window.innerWidth < 640)
   }, [notifyOpen, submitOpen, calModal, reviewModal])
 
   const sorted = [...listings].sort((a,b) => {
+    if (sortBy === 'program') {
+      const pA = a.program_start ? new Date(a.program_start).getTime() : Infinity
+      const pB = b.program_start ? new Date(b.program_start).getTime() : Infinity
+      return pA - pB
+    }
     const dA = a.is_rolling ? 999 : daysUntil(a.reg_close || a.deadline)
     const dB = b.is_rolling ? 999 : daysUntil(b.reg_close || b.deadline)
     if (dA >= 0 && dB >= 0) return dA - dB
@@ -130,7 +134,12 @@ const filtered = sorted.filter(l => {
   const days = l.is_rolling ? 999 : daysUntil(l.reg_close || l.deadline)
   const isClosed = !l.is_rolling && days < 0
   const matchOpen = !hideClosed || !isClosed
-  return matchCat && matchLoc && matchGender && matchAge && matchQ && matchOpen
+  const matchWhen = whenRange==='any' || (!l.is_rolling && (
+    (whenRange==='30' && days>=0 && days<=30) ||
+    (whenRange==='90' && days>=0 && days<=90) ||
+    (whenRange==='past90' && days>90)
+  ))
+  return matchCat && matchLoc && matchGender && matchAge && matchQ && matchOpen && matchWhen
 })
 
   const activeFilterCount = [
@@ -138,12 +147,13 @@ const filtered = sorted.filter(l => {
     location !== 'All Areas',
     gender !== 'all',
     ageMin > 0 || ageMax < 18,
-    !!search
+    !!search,
+    whenRange !== 'any'
   ].filter(Boolean).length
 
   function clearFilters() {
     setFilter('All'); setLocation('All Areas'); setGender('all')
-    setAgeMin(0); setAgeMax(18); setSearch('')
+    setAgeMin(0); setAgeMax(18); setSearch(''); setWhenRange('any')
   }
 
   function toggleSave(l) {
@@ -211,40 +221,8 @@ const filtered = sorted.filter(l => {
     setNotifyForm(f => ({...f, locations: f.locations.includes(loc) ? f.locations.filter(c=>c!==loc) : [...f.locations,loc]}))
   }
 
-  function getCalDays() {
-    return {
-      firstDay: new Date(calYear,calMonth,1).getDay(),
-      daysInMonth: new Date(calYear,calMonth+1,0).getDate()
-    }
-  }
-  function getListingsForDay(day) {
-  return listings.filter(l => {
-    if (calView === 'deadline') {
-      const d = new Date(l.reg_close || l.deadline)
-      return d.getFullYear()===calYear && d.getMonth()===calMonth && d.getDate()===day
-    } else {
-      // Show on every day the program runs
-      if (!l.program_start) return false
-      const start = new Date(l.program_start)
-      const end = l.program_end ? new Date(l.program_end) : start
-      const check = new Date(calYear, calMonth, day)
-      return check >= start && check <= end
-    }
-  })
-}
-  function isToday(day) {
-    return day===today.getDate() && calMonth===today.getMonth() && calYear===today.getFullYear()
-  }
-  function prevMonth() {
-    if (calMonth===0){setCalMonth(11);setCalYear(y=>y-1)} else setCalMonth(m=>m-1)
-  }
-  function nextMonth() {
-    if (calMonth===11){setCalMonth(0);setCalYear(y=>y+1)} else setCalMonth(m=>m+1)
-  }
-
   const freeCount = listings.filter(l=>l.cost_free).length
   const urgentCount = listings.filter(l=>!l.is_rolling&&daysUntil(l.reg_close||l.deadline)<=14&&daysUntil(l.reg_close||l.deadline)>=0).length
-  const {firstDay,daysInMonth} = getCalDays()
   const p = isMobile ? '1rem' : '2rem'
 
   const s = {
@@ -305,47 +283,45 @@ const filtered = sorted.filter(l => {
           <span style={s.logo}>Your<span style={s.logoSpan}>KidCal</span></span>
         </div>
         <div style={{display:'flex',gap:8}}>
-          <button style={s.navBtn('#185FA5')} onClick={()=>setNotifyOpen(true)}>{isMobile?'🔔':'🔔 Get Alerts'}</button>
-          <button style={s.navBtn()} onClick={()=>setSubmitOpen(true)}>{isMobile?'+':'+ List a Program'}</button>
+          <button style={s.navBtn('#185FA5')} onClick={()=>setNotifyOpen(true)}>🔔 Alerts</button>
+          <button style={s.navBtn()} onClick={()=>setSubmitOpen(true)}>+ List</button>
         </div>
       </nav>
 
-      {/* ── HERO ── */}
       <div style={s.hero}>
-        <div style={{maxWidth:1280,margin:'0 auto',display:'flex',alignItems:'center',justifyContent:'space-between',gap:24,flexWrap:'wrap'}}>
-          <div style={{flex:1,minWidth:0}}>
-            <div style={{fontSize:isMobile?20:28,fontFamily:"'Playfair Display',serif",fontWeight:700,color:'#2C2C2A',lineHeight:1.2}}>
-              Every kids program deadline in <span style={{color:'#E8A020'}}>SLO County.</span>
-            </div>
-            <div style={{fontSize:13,color:'#888780',marginTop:6,display:'flex',gap:16,flexWrap:'wrap'}}>
-              <span>{listings.length} programs</span>
-              <span style={{color:'#D85A30',fontWeight:600}}>⏰ {urgentCount} urgent</span>
-              <span style={{color:'#3B6D11',fontWeight:600}}>✓ {freeCount} free</span>
-            </div>
+        <div style={{maxWidth:1280,margin:'0 auto'}}>
+          <div style={{fontSize:isMobile?20:28,fontFamily:"'Playfair Display',serif",fontWeight:700,color:'#2C2C2A',lineHeight:1.2}}>
+            Kids programs in <span style={{color:'#E8A020'}}>SLO County</span> — never miss a deadline.
           </div>
-          <div style={{flexShrink:0,display:'flex',gap:8,alignItems:'center',width:isMobile?'100%':'auto'}}>
-            <div style={{position:'relative',flex:1}}>
-              <input
-                style={{border:'1.5px solid #e0ddd5',borderRadius:10,padding:'10px 14px 10px 36px',fontFamily:"'DM Sans',sans-serif",fontSize:14,background:'#F7F3EC',outline:'none',width:isMobile?'100%':260}}
-                placeholder="Search programs, orgs, areas..."
-                value={search}
-                onChange={e=>setSearch(e.target.value)}
-              />
-              <span style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',fontSize:14,color:'#888780'}}>🔍</span>
-            </div>
+          <div style={{fontSize:13,color:'#888780',marginTop:6,display:'flex',gap:16,flexWrap:'wrap'}}>
+            <span>{listings.length} programs</span>
+            <span style={{color:'#D85A30',fontWeight:600}}>⏰ {urgentCount} closing soon</span>
+            <span style={{color:'#3B6D11',fontWeight:600}}>✓ {freeCount} free</span>
           </div>
         </div>
       </div>
 
       {/* ── TABS ── */}
       <div style={s.tabBar}>
-        {[['browse','Browse'],['quick','Quick List'],['calendar','Calendar'],['reviews','Reviews']].map(([id,label])=>(
+        {[['browse','Browse'],['reviews','Reviews']].map(([id,label])=>(
           <button key={id} style={s.tabBtn(tab===id)} onClick={()=>{setTab(id);if(id==='reviews')fetchReviews()}}>{label}</button>
         ))}
       </div>
 
       {/* ══ BROWSE TAB ══ */}
       {tab==='browse'&&(
+        <>
+        <div style={{maxWidth:1280,margin:'0 auto',padding:isMobile?'0.85rem 1rem 0':'1rem 2rem 0'}}>
+          <div style={{position:'relative',maxWidth:420}}>
+            <input
+              style={{border:'1.5px solid #e0ddd5',borderRadius:10,padding:'9px 12px 9px 34px',fontFamily:"'DM Sans',sans-serif",fontSize:13,background:'#fff',outline:'none',width:'100%',boxSizing:'border-box'}}
+              placeholder="Search programs, orgs, areas..."
+              value={search}
+              onChange={e=>setSearch(e.target.value)}
+            />
+            <span style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',fontSize:13,color:'#888780'}}>🔍</span>
+          </div>
+        </div>
         <div style={{maxWidth:1280,margin:'0 auto',padding:isMobile?0:'0 2rem',display:'flex',flexDirection:isMobile?'column':'row',alignItems:'flex-start'}}>
 
           {/* ── DESKTOP SIDEBAR ── */}
@@ -356,7 +332,7 @@ const filtered = sorted.filter(l => {
                 <span style={{fontSize:14,fontWeight:600,color:'#2C2C2A'}}>Filters</span>
                 {activeFilterCount>0&&(
                   <button onClick={clearFilters} style={{background:'#FAECE7',color:'#D85A30',border:'none',borderRadius:20,padding:'3px 10px',fontSize:11,fontWeight:600,cursor:'pointer'}}>
-                    Clear {activeFilterCount}
+                    Clear all filters ({activeFilterCount})
                   </button>
                 )}
               </div>
@@ -365,9 +341,9 @@ const filtered = sorted.filter(l => {
               <div style={{marginBottom:'1.25rem'}}>
                 <div style={{fontSize:10,fontWeight:700,color:'#888780',textTransform:'uppercase',letterSpacing:'.6px',marginBottom:6,padding:'0 12px'}}>Type</div>
                 {CATEGORIES.map(cat=>(
-                  <button key={cat} className="side-btn" onClick={()=>setFilter(cat)}
+                  <button key={cat} className="side-btn" onClick={()=>setFilter(f=>f===cat?'All':cat)}
                     style={sideBtn(filter===cat)}>
-                    {cat}
+                    {catLabel(cat)}
                   </button>
                 ))}
               </div>
@@ -391,7 +367,7 @@ const filtered = sorted.filter(l => {
               <div style={{marginBottom:'1.25rem'}}>
                 <div style={{fontSize:10,fontWeight:700,color:'#888780',textTransform:'uppercase',letterSpacing:'.6px',marginBottom:6,padding:'0 12px'}}>Area</div>
                 {LOCATIONS.map(loc=>(
-                  <button key={loc} className="side-btn" onClick={()=>setLocation(loc)}
+                  <button key={loc} className="side-btn" onClick={()=>setLocation(l=>l===loc?'All Areas':loc)}
                     style={{...sideBtn(location===loc,'#185FA5'),overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                     {loc}
                   </button>
@@ -427,7 +403,7 @@ const filtered = sorted.filter(l => {
               <div className="filter-scroll" style={{padding:'.4rem 1rem',borderBottom:'1px solid #f0ede6'}}>
                 <span style={{...s.filterLabel,display:'inline-flex',alignItems:'center',marginRight:6}}>Type</span>
                 {CATEGORIES.map(cat=>(
-                  <button key={cat} style={{...s.chip(filter===cat),marginRight:6}} onClick={()=>setFilter(cat)}>{cat}</button>
+                  <button key={cat} style={{...s.chip(filter===cat),marginRight:6}} onClick={()=>setFilter(f=>f===cat?'All':cat)}>{catLabel(cat)}</button>
                 ))}
               </div>
               <div className="filter-scroll" style={{padding:'.3rem 1rem',borderBottom:'1px solid #f0ede6'}}>
@@ -439,7 +415,7 @@ const filtered = sorted.filter(l => {
               <div className="filter-scroll" style={{padding:'.3rem 1rem',borderBottom:'1px solid #f0ede6'}}>
                 <span style={{...s.filterLabel,display:'inline-flex',alignItems:'center',marginRight:6}}>Area</span>
                 {LOCATIONS.map(loc=>(
-                  <button key={loc} style={{...s.chip(location===loc,'#185FA5'),marginRight:6}} onClick={()=>setLocation(loc)}>{loc}</button>
+                  <button key={loc} style={{...s.chip(location===loc,'#185FA5'),marginRight:6}} onClick={()=>setLocation(l=>l===loc?'All Areas':loc)}>{loc}</button>
                 ))}
               </div>
               <div style={{padding:'.3rem 1rem .4rem',display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
@@ -460,7 +436,7 @@ const filtered = sorted.filter(l => {
                 </div>
                 {activeFilterCount>0&&(
                   <button onClick={clearFilters} style={{background:'#FAECE7',color:'#D85A30',border:'none',borderRadius:20,padding:'4px 10px',fontSize:11,fontWeight:600,cursor:'pointer',marginLeft:'auto'}}>
-                    Clear {activeFilterCount} filter{activeFilterCount>1?'s':''}
+                    Clear all filters ({activeFilterCount})
                   </button>
                 )}
               </div>
@@ -470,10 +446,21 @@ const filtered = sorted.filter(l => {
           {/* ── MAIN CARD AREA ── */}
           <div style={{flex:1,minWidth:0,padding:isMobile?'1rem':'1.5rem 0 1.5rem 1.75rem'}}>
 
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem',flexWrap:'wrap',gap:8}}>
               <span style={{fontSize:13,color:'#888780',fontWeight:500}}>
                 {filtered.length} program{filtered.length!==1?'s':''} {activeFilterCount>0?'matched':'found'}
               </span>
+              <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+                <select aria-label="Sort programs" value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{border:'1.5px solid #e0ddd5',borderRadius:8,padding:'6px 10px',fontSize:12,fontFamily:"'DM Sans',sans-serif",color:'#2C2C2A',background:'#fff',cursor:'pointer'}}>
+                  {SORTS.map(([id,label])=><option key={id} value={id}>Sort: {label}</option>)}
+                </select>
+                <select aria-label="Filter by timeframe" value={whenRange} onChange={e=>setWhenRange(e.target.value)} style={{border:'1.5px solid #e0ddd5',borderRadius:8,padding:'6px 10px',fontSize:12,fontFamily:"'DM Sans',sans-serif",color:'#2C2C2A',background:'#fff',cursor:'pointer'}}>
+                  {WHEN_RANGES.map(([id,label])=><option key={id} value={id}>{label}</option>)}
+                </select>
+                <button onClick={()=>setHideClosed(h=>!h)} style={{background:hideClosed?'#2C2C2A':'#fff',color:hideClosed?'#fff':'#2C2C2A',border:'1.5px solid #e0ddd5',borderRadius:20,padding:'5px 12px',fontSize:11,fontWeight:500,cursor:'pointer'}}>
+                  {hideClosed?'Show closed programs':'Hide closed programs'}
+                </button>
+              </div>
             </div>
 
             {filtered.length===0&&(
@@ -509,13 +496,13 @@ const filtered = sorted.filter(l => {
                     {/* BADGES + BOOKMARK */}
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
                       <div style={{display:'flex',gap:4,flexWrap:'wrap',alignItems:'center'}}>
-                        <span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:10,textTransform:'uppercase',letterSpacing:'.3px',background:BADGE[l.category?.toLowerCase()]?.bg||'#eee',color:BADGE[l.category?.toLowerCase()]?.color||'#666'}}>{l.category}</span>
+                        <span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:10,textTransform:'uppercase',letterSpacing:'.3px',background:BADGE[l.category?.toLowerCase()]?.bg||'#eee',color:BADGE[l.category?.toLowerCase()]?.color||'#666'}}>{catLabel(l.category)}</span>
                         {l.gender&&l.gender!=='both'&&<span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:10,textTransform:'uppercase',background:'#FAECE7',color:'#D85A30'}}>{l.gender==='male'?'Boys':'Girls'}</span>}
-                        {urgent&&!past&&<span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:10,textTransform:'uppercase',background:'#FAECE7',color:'#D85A30'}}>🔥 Urgent</span>}
+                        {urgent&&!past&&<span title="Registration deadline is coming up soon" style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:10,textTransform:'uppercase',background:'#FAECE7',color:'#D85A30'}}>⏰ Deadline soon</span>}
                         {past&&<span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:10,textTransform:'uppercase',background:'#f0ede6',color:'#888780'}}>Closed</span>}
                         {l.verified&&<span style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:10,textTransform:'uppercase',background:'#EAF3DE',color:'#27500A'}}>✓ Verified</span>}
                       </div>
-                      <button style={{background:isSaved(l.id)?'#EAF3DE':'none',border:isSaved(l.id)?'1.5px solid #3B6D11':'1.5px solid #e0ddd5',color:isSaved(l.id)?'#3B6D11':'#888780',borderRadius:6,width:28,height:28,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:13,flexShrink:0}} onClick={()=>toggleSave(l)}>🔖</button>
+                      <button aria-label={isSaved(l.id)?'Remove from saved list':'Save to my list'} title={isSaved(l.id)?'Remove from saved list':'Save to my list'} style={{background:isSaved(l.id)?'#EAF3DE':'none',border:isSaved(l.id)?'1.5px solid #3B6D11':'1.5px solid #e0ddd5',color:isSaved(l.id)?'#3B6D11':'#888780',borderRadius:6,width:28,height:28,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:13,flexShrink:0}} onClick={()=>toggleSave(l)}>🔖</button>
                     </div>
 
                     {/* TITLE */}
@@ -527,16 +514,18 @@ const filtered = sorted.filter(l => {
                     {/* META ROW */}
                     <div style={{display:'flex',flexWrap:'wrap',gap:'5px 12px',fontSize:11,color:'#888780'}}>
                       {!past&&(
-                        <span style={{color:urgencyColor(days),fontWeight:600}}>
-                          {l.is_rolling ? '↻ Rolling enrollment' : `⏰ ${formatDateShort(l.reg_close||l.deadline)} · ${days}d left`}
+                        <span title="Registration deadline" style={{color:urgencyColor(days),fontWeight:600}}>
+                          {l.is_rolling ? '↻ Rolling enrollment' : `⏰ Deadline ${formatDateShort(l.reg_close||l.deadline)} · ${days}d left`}
                         </span>
                       )}
                       {past&&<span>🔒 Closed</span>}
-                      {l.program_start&&<span>▶ {formatDateShort(l.program_start)}{l.program_end?` – ${formatDateShort(l.program_end)}`:''}</span>}
-                      {l.ages&&<span>👥 {l.ages}</span>}
+                      {l.program_start&&<span title="Program dates">▶ {formatDateShort(l.program_start)}{l.program_end?` – ${formatDateShort(l.program_end)}`:''}</span>}
+                      {l.ages&&<span title="Age range">👥 Ages {l.ages}</span>}
                       {l.cost_free
                         ? <span style={{color:'#3B6D11',fontWeight:700,background:'#EAF3DE',padding:'1px 6px',borderRadius:8}}>Free</span>
-                        : <span>💰 ${l.cost?.toLocaleString()}</span>
+                        : (l.cost===null||l.cost===undefined)
+                          ? <span title="Price">💰 Price varies</span>
+                          : <span title="Price">💰 ${l.cost.toLocaleString()}</span>
                       }
                     </div>
 
@@ -545,18 +534,18 @@ const filtered = sorted.filter(l => {
                       <div>
                         {isExpanded&&<p style={{fontSize:12,color:'#555',lineHeight:1.6,margin:'0 0 4px'}}>{l.description}</p>}
                         <button onClick={()=>toggleExpand(l.id)} style={{background:'none',border:'none',color:'#185FA5',fontSize:12,cursor:'pointer',padding:0,fontFamily:"'DM Sans',sans-serif"}}>
-                          {isExpanded?'▲ Less':'▼ More info'}
+                          {isExpanded?'▲ Hide details':'▼ See details'}
                         </button>
                       </div>
                     )}
 
                     {/* FOOTER */}
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',paddingTop:8,borderTop:'1px solid #f0ede6',marginTop:'auto'}}>
-                      <button style={{background:'none',border:'1.5px solid #e0ddd5',color:'#888780',borderRadius:6,width:28,height:28,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:13}} onClick={()=>setCalModal(l)}>📅</button>
+                      <button aria-label="Add to calendar" title="Add to calendar" style={{background:'none',border:'1.5px solid #e0ddd5',color:'#888780',borderRadius:6,padding:'0 10px',height:28,display:'flex',alignItems:'center',justifyContent:'center',gap:4,cursor:'pointer',fontSize:11,whiteSpace:'nowrap'}} onClick={()=>setCalModal(l)}>📅 Add to calendar</button>
                       {l.registration_url&&!past
   ? <a href={l.registration_url} target="_blank" rel="noopener noreferrer" className="register-btn"
       style={{background:l.is_rolling?'#185FA5':'#E8A020',color:'#fff',border:'none',padding:'8px 18px',borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:600,cursor:'pointer',textDecoration:'none',display:'inline-block'}}>
-      {l.is_rolling?'Enroll →':'Register →'}
+      {l.is_rolling?'Enroll on their site →':'Register on their site →'}
     </a>
   : past
     ? <span style={{fontSize:11,color:'#888780',fontStyle:'italic'}}>Registration closed</span>
@@ -588,81 +577,7 @@ const filtered = sorted.filter(l => {
             )}
           </div>
         </div>
-      )}
-
-      {/* ══ QUICK LIST TAB ══ */}
-      {tab==='quick'&&(
-        <div style={s.main}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'.75rem'}}>
-            <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-  <span style={{fontSize:13,color:'#888780',fontWeight:500}}>
-    {filtered.length} program{filtered.length!==1?'s':''} {activeFilterCount>0?'matched':'found'}
-  </span>
-  <button
-    onClick={()=>setHideClosed(h=>!h)}
-    style={{background:hideClosed?'#2C2C2A':'#fff',color:hideClosed?'#fff':'#2C2C2A',border:'1.5px solid #e0ddd5',borderRadius:20,padding:'3px 12px',fontSize:11,fontWeight:500,cursor:'pointer'}}>
-    {hideClosed?'Show closed':'Hide closed'}
-  </button>
-</div>
-            {activeFilterCount>0&&(
-              <button onClick={clearFilters} style={{background:'#FAECE7',color:'#D85A30',border:'none',borderRadius:20,padding:'4px 10px',fontSize:11,fontWeight:600,cursor:'pointer'}}>
-                Clear {activeFilterCount} filter{activeFilterCount>1?'s':''}
-              </button>
-            )}
-          </div>
-
-          {filtered.length===0&&(
-            <div style={{textAlign:'center',padding:'2rem',color:'#888780',background:'#fff',borderRadius:12,border:'1.5px solid #e0ddd5'}}>
-              <div style={{fontSize:28,marginBottom:6}}>🔍</div>
-              <div style={{fontWeight:600,color:'#2C2C2A',marginBottom:4}}>No programs match</div>
-              <button onClick={clearFilters} style={{background:'#E8A020',color:'#fff',border:'none',borderRadius:8,padding:'7px 14px',fontSize:13,fontWeight:600,cursor:'pointer',marginTop:8}}>
-                Clear filters
-              </button>
-            </div>
-          )}
-
-          <div style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:12,overflow:'hidden'}}>
-            {filtered.map((l,i)=>{
-              const days = l.is_rolling ? 999 : daysUntil(l.reg_close || l.deadline)
-              const urgent = days<=9&&days>=0
-              const past = !l.is_rolling && days<0
-              return (
-                <div key={l.id} style={{display:'flex',alignItems:'center',gap:12,padding:'11px 16px',borderBottom:i<filtered.length-1?'1px solid #f0ede6':'none',opacity:past?0.5:1}}>
-                  <div style={{width:4,alignSelf:'stretch',background:past?'#e0ddd5':urgent?'#D85A30':CAT_COLORS[l.category?.toLowerCase()]||'#e0ddd5',borderRadius:2,flexShrink:0}}/>
-                  <div style={{flex:1,minWidth:0}}>
-                    <a href={`/programs/${l.slug}`} style={{textDecoration:'none'}}>
-                      <div style={{fontSize:13,fontWeight:600,color:'#2C2C2A',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',cursor:'pointer'}}>{l.title}</div>
-                    </a>
-                    <div style={{display:'flex',gap:8,marginTop:2,alignItems:'center',flexWrap:'wrap'}}>
-                      <span style={{fontSize:11,color:past?'#888780':urgencyColor(days),fontWeight:600}}>
-                        {past?'Closed':l.is_rolling?'↻ Rolling':urgent?`🔥 ${days}d left`:formatDateShort(l.reg_close||l.deadline)}
-                      </span>
-                      {!past&&<span style={{fontSize:11,color:'#888780'}}>{l.location||'SLO County'}</span>}
-                      {l.cost_free
-                        ? <span style={{fontSize:10,fontWeight:700,color:'#3B6D11',background:'#EAF3DE',padding:'1px 6px',borderRadius:8}}>Free</span>
-                        : <span style={{fontSize:11,color:'#888780'}}>${l.cost}</span>
-                      }
-                    </div>
-                  </div>
-                  <div style={{display:'flex',gap:6,flexShrink:0,alignItems:'center'}}>
-                    <span style={{fontSize:11,fontWeight:600,color:past?'#888780':urgencyColor(days),minWidth:isMobile?0:60,textAlign:'right',display:isMobile?'none':'block'}}>
-                      {past?'Closed':formatDateShort(l.reg_close||l.deadline)}
-                    </span>
-                    {l.registration_url&&!past
-  ? <a href={l.registration_url} target="_blank" rel="noopener noreferrer" className="register-btn"
-      style={{background:l.is_rolling?'#185FA5':'#E8A020',color:'#fff',border:'none',padding:'8px 18px',borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:600,cursor:'pointer',textDecoration:'none',display:'inline-block'}}>
-      {l.is_rolling?'Enroll →':'Register →'}
-    </a>
-  : past
-    ? <span style={{fontSize:11,color:'#888780',fontStyle:'italic'}}>Registration closed</span>
-    : <span style={{fontSize:11,color:'#888780'}}>No link yet</span>
-}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
+        </>
       )}
 
       {/* ══ REVIEWS TAB ══ */}
@@ -765,121 +680,6 @@ const filtered = sorted.filter(l => {
         </div>
       )}
 
-{/* ══ CALENDAR TAB ══ */}
-{tab==='calendar'&&(
-  <div style={s.main}>
-    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1.25rem',flexWrap:'wrap',gap:8}}>
-      <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?18:22,margin:0}}>
-        {MONTHS[calMonth]} {calYear}
-      </h3>
-
-      <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
-        <div style={{display:'flex',border:'1.5px solid #e0ddd5',borderRadius:8,overflow:'hidden',fontSize:12,fontWeight:500}}>
-          <button onClick={()=>setCalView('deadline')} style={{padding:'6px 12px',border:'none',background:calView==='deadline'?'#2C2C2A':'#fff',color:calView==='deadline'?'#fff':'#888780',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",fontSize:12}}>⏰ Reg. Deadline</button>
-          <button onClick={()=>setCalView('program')} style={{padding:'6px 12px',border:'none',borderLeft:'1px solid #e0ddd5',background:calView==='program'?'#2C2C2A':'#fff',color:calView==='program'?'#fff':'#888780',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",fontSize:12}}>▶ Program Dates</button>
-        </div>
-
-        <button style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontSize:13}} onClick={prevMonth}>←</button>
-        <button style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontSize:13}} onClick={nextMonth}>→</button>
-        <button style={{background:'#2C2C2A',color:'#fff',border:'none',borderRadius:8,padding:'6px 14px',cursor:'pointer',fontSize:12,fontWeight:600}} onClick={()=>downloadIcs(listings)}>⬇ All</button>
-      </div>
-    </div>
-
-    <div style={{display:'flex',gap:12,flexWrap:'wrap',marginBottom:'1rem'}}>
-      {Object.entries(CAT_COLORS).map(([cat,color])=>(
-        <div key={cat} style={{display:'flex',alignItems:'center',gap:5,fontSize:11}}>
-          <div style={{width:8,height:8,borderRadius:'50%',background:color}}/>
-          <span style={{color:'#888780',textTransform:'capitalize'}}>{cat}</span>
-        </div>
-      ))}
-    </div>
-
-    <div style={{background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:12,overflow:'hidden'}}>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',borderBottom:'1.5px solid #e0ddd5'}}>
-        {DAYS.map((d,i)=>(
-          <div key={i} style={{textAlign:'center',padding:'10px 0',fontSize:11,fontWeight:700,color:'#888780'}}>{d}</div>
-        ))}
-      </div>
-
-      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)'}}>
-        {Array.from({length:firstDay}).map((_,i)=>(
-          <div key={'e'+i} style={{minHeight:isMobile?48:80,borderRight:'1px solid #f0ede6',borderBottom:'1px solid #f0ede6',background:'#faf9f6'}}/>
-        ))}
-
-        {Array.from({length:daysInMonth}).map((_,i)=>{
-          const day=i+1
-          const dayListings=getListingsForDay(day)
-          const isT=isToday(day)
-
-          return (
-            <div key={day} style={{height:isMobile?64:100, overflow:'hidden', borderRight:'1px solid #f0ede6',borderBottom:'1px solid #f0ede6',padding:isMobile?3:6,background:isT?'#fffbf2':'#fff'}}>
-              <div style={{width:22,height:22,borderRadius:'50%',background:isT?'#E8A020':'transparent',color:isT?'#fff':'#2C2C2A',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:isT?700:400,marginBottom:3}}>
-                {day}
-              </div>
-
-              {dayListings.map(l=>(
-                <div key={l.id} onClick={()=>setCalModal(l)} style={{background:CAT_COLORS[l.category?.toLowerCase()]||'#888',color:'#fff',borderRadius:3,padding:'1px 4px',fontSize:isMobile?9:10,fontWeight:500,marginBottom:2,cursor:'pointer',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',lineHeight:1.6}}>
-                  {isMobile?'●':l.title}
-                </div>
-              ))}
-            </div>
-          )
-        })}
-      </div>
-    </div>
-
-    <div style={{marginTop:'1.5rem'}}>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1rem'}}>
-        <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?16:18,margin:0}}>
-          {calView==='deadline'?'All Deadlines':'All Programs'}
-        </h3>
-        <button style={{background:hidePast?'#2C2C2A':'#fff',color:hidePast?'#fff':'#2C2C2A',border:'1.5px solid #e0ddd5',borderRadius:20,padding:'5px 14px',fontSize:12,fontWeight:500,cursor:'pointer'}} onClick={()=>setHidePast(h=>!h)}>
-          {hidePast?'Show Past':'Hide Past'}
-        </button>
-      </div>
-
-      {listings.filter(l=>{
-        if (calView==='deadline') {
-          return hidePast ? !l.is_rolling&&daysUntil(l.reg_close||l.deadline)>=0 : true
-        } else {
-          return hidePast ? l.program_start && new Date(l.program_end||l.program_start) >= new Date() : !!l.program_start
-        }
-      }).sort((a,b)=>{
-        if (calView==='deadline') return new Date(a.reg_close||a.deadline)-new Date(b.reg_close||b.deadline)
-        return new Date(a.program_start)-new Date(b.program_start)
-      }).map(l=>{
-        const days = l.is_rolling ? 999 : daysUntil(l.reg_close||l.deadline)
-
-        return (
-          <div key={l.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'11px 16px',background:'#fff',border:'1.5px solid #e0ddd5',borderRadius:10,marginBottom:8,opacity:days<0?0.5:1,gap:8}}>
-            <div style={{display:'flex',alignItems:'center',gap:10,flex:1,minWidth:0}}>
-              <div style={{width:8,height:8,borderRadius:'50%',background:CAT_COLORS[l.category?.toLowerCase()]||'#888',flexShrink:0}}/>
-              <div style={{minWidth:0}}>
-                <a href={`/programs/${l.slug}`} style={{textDecoration:'none'}}>
-                  <div style={{fontSize:13,fontWeight:600,color:'#2C2C2A',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',cursor:'pointer'}}>{l.title}</div>
-                </a>
-                <div style={{fontSize:11,color:'#888780'}}>{l.org_name}</div>
-              </div>
-            </div>
-
-            <div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
-              <div style={{textAlign:'right'}}>
-                <div style={{fontSize:12,fontWeight:600,color:days<0?'#888780':urgencyColor(days)}}>
-                  {l.is_rolling?'Rolling':formatDateShort(l.reg_close||l.deadline)}
-                </div>
-                <div style={{fontSize:10,color:days<0?'#888780':urgencyColor(days)}}>
-                  {days<0?'Closed':l.is_rolling?'Enroll anytime':`${days}d left`}
-                </div>
-              </div>
-              <button style={{background:'#E8A020',color:'#fff',border:'none',borderRadius:8,padding:'5px 12px',fontSize:12,fontWeight:600,cursor:'pointer'}} onClick={()=>setCalModal(l)}>+</button>
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  </div>
-)}
-
       {/* ── CAL MODAL ── */}
       {calModal&&(
         <div style={s.overlay} onClick={()=>setCalModal(null)}>
@@ -911,7 +711,7 @@ const filtered = sorted.filter(l => {
               <>
                 <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:20,marginBottom:4}}>🔔 Get Deadline Alerts</h3>
                 <p style={{fontSize:13,color:'#888780',marginBottom:'1.25rem',lineHeight:1.6}}>We'll email you when deadlines are approaching for programs that match your family.</p>
-                {[['Name','name','text','e.g. Sarah'],['Email *','email','email','your@email.com']].map(([label,key,type,ph])=>(
+                {[['Email *','email','email','your@email.com'],['Name','name','text','e.g. Sarah']].map(([label,key,type,ph])=>(
                   <div key={key} style={{marginBottom:'.85rem'}}>
                     <label style={{display:'block',fontSize:12,fontWeight:600,color:'#2C2C2A',marginBottom:4,textTransform:'uppercase',letterSpacing:'.4px'}}>{label}</label>
                     <input style={s.input} type={type} placeholder={ph} value={notifyForm[key]} onChange={e=>setNotifyForm(f=>({...f,[key]:e.target.value}))}/>
@@ -921,7 +721,7 @@ const filtered = sorted.filter(l => {
                   <label style={{display:'block',fontSize:12,fontWeight:600,color:'#2C2C2A',marginBottom:6,textTransform:'uppercase',letterSpacing:'.4px'}}>Program types</label>
                   <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
                     {['Camp','School','Sport','Daycare','Rec','Arts'].map(cat=>(
-                      <button key={cat} onClick={()=>toggleNotifyCat(cat)} style={{border:notifyForm.categories.includes(cat)?'none':'1.5px solid #e0ddd5',background:notifyForm.categories.includes(cat)?'#2C2C2A':'#fff',color:notifyForm.categories.includes(cat)?'#fff':'#2C2C2A',borderRadius:20,padding:'5px 12px',fontSize:12,cursor:'pointer'}}>{cat}</button>
+                      <button key={cat} onClick={()=>toggleNotifyCat(cat)} style={{border:notifyForm.categories.includes(cat)?'none':'1.5px solid #e0ddd5',background:notifyForm.categories.includes(cat)?'#2C2C2A':'#fff',color:notifyForm.categories.includes(cat)?'#fff':'#2C2C2A',borderRadius:20,padding:'5px 12px',fontSize:12,cursor:'pointer'}}>{catLabel(cat)}</button>
                     ))}
                   </div>
                 </div>
@@ -992,7 +792,7 @@ const filtered = sorted.filter(l => {
                 <div style={{marginBottom:'.85rem'}}>
                   <label style={{display:'block',fontSize:12,fontWeight:600,color:'#2C2C2A',marginBottom:4,textTransform:'uppercase',letterSpacing:'.4px'}}>Category</label>
                   <select style={s.input} value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))}>
-                    {['Camp','School','Sport','Daycare','Rec','Arts'].map(c=><option key={c}>{c}</option>)}
+                    {['Camp','School','Sport','Daycare','Rec','Arts'].map(c=><option key={c} value={c}>{catLabel(c)}</option>)}
                   </select>
                 </div>
                 <div style={{marginBottom:'.85rem',display:'flex',alignItems:'center',gap:8}}>
