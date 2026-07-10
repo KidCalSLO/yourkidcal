@@ -4,7 +4,8 @@ export default async function sitemap() {
   const { data: listings } = await supabase
     .from('listings')
     .select('slug, created_at')
-    .eq('status', 'approved')
+    .in('status', ['approved', 'active'])
+    .eq('is_archived', false)
     .not('slug', 'is', null)
 
   const programUrls = (listings || []).map(l => ({

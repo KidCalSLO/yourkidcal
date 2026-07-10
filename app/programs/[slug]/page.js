@@ -7,7 +7,7 @@ export async function generateStaticParams() {
   const { data } = await supabase
     .from('listings')
     .select('slug')
-    .eq('status', 'approved')
+    .in('status', ['approved', 'active'])
     .not('slug', 'is', null)
   return (data || []).map(l => ({ slug: l.slug }))
 }
@@ -32,7 +32,7 @@ export async function generateMetadata({ params }) {
       type: 'website',
     },
     twitter: {
-      card: 'summary',
+      card: 'summary_large_image',
       title: `${l.title} | YourKidCal`,
       description: l.description || `${l.title} by ${l.org_name} in SLO County.`,
     },
