@@ -84,6 +84,7 @@ export default function HomeClient({listings}) {
     description:'',cost:'',cost_free:false,deadline:'',
     start_date:'',end_date:'',registration_url:'',email:''
   })
+  const [visibleCount, setVisibleCount] = useState(30)
   const [featuredOpen, setFeaturedOpen] = useState(false)
   const [featuredSubmitted, setFeaturedSubmitted] = useState(false)
   const [featuredForm, setFeaturedForm] = useState({org_name:'',contact_name:'',email:'',message:''})
@@ -145,6 +146,10 @@ const filtered = sorted.filter(l => {
   ))
   return matchCat && matchLoc && matchGender && matchAge && matchQ && matchOpen && matchWhen
 })
+
+  useEffect(() => {
+    setVisibleCount(30)
+  }, [filter, location, gender, ageMin, ageMax, search, whenRange, hideClosed, sortBy])
 
   const activeFilterCount = [
     filter !== 'All',
@@ -301,9 +306,9 @@ const filtered = sorted.filter(l => {
 
       <div style={s.hero}>
         <div style={{maxWidth:1280,margin:'0 auto'}}>
-          <div style={{fontSize:isMobile?20:28,fontFamily:"'Playfair Display',serif",fontWeight:700,color:'#2C2C2A',lineHeight:1.2}}>
+          <h1 style={{fontSize:isMobile?20:28,fontFamily:"'Playfair Display',serif",fontWeight:700,color:'#2C2C2A',lineHeight:1.2,margin:0}}>
             Kids programs in <span style={{color:'#E8A020'}}>SLO County</span> — never miss a deadline.
-          </div>
+          </h1>
           <div style={{fontSize:13,color:'#888780',marginTop:6,display:'flex',gap:16,flexWrap:'wrap'}}>
             <span>{listings.length} programs</span>
             <span style={{color:'#D85A30',fontWeight:600}}>⏰ {urgentCount} closing soon</span>
@@ -486,7 +491,7 @@ const filtered = sorted.filter(l => {
             )}
 
             <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'repeat(auto-fill,minmax(320px,1fr))',gap:14}}>
-              {filtered.map(l=>{
+              {filtered.slice(0,visibleCount).map(l=>{
                 const days = l.is_rolling ? 999 : daysUntil(l.reg_close || l.deadline)
                 const urgent = days<=9&&days>=0
                 const past = !l.is_rolling && days<0
@@ -569,6 +574,14 @@ const filtered = sorted.filter(l => {
                 )
               })}
             </div>
+
+            {visibleCount<filtered.length&&(
+              <div style={{textAlign:'center',marginTop:'1.5rem'}}>
+                <button onClick={()=>setVisibleCount(c=>c+30)} style={{background:'#fff',color:'#2C2C2A',border:'1.5px solid #e0ddd5',borderRadius:8,padding:'10px 24px',fontSize:13,fontWeight:600,cursor:'pointer'}}>
+                  Show more ({filtered.length-visibleCount} more)
+                </button>
+              </div>
+            )}
 
             {/* SAVED LIST */}
             {saved.length>0&&(
