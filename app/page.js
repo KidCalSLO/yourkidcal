@@ -7,7 +7,7 @@ export default async function Home() {
   const { data: listings } = await supabase
     .from('listings')
     .select('*')
-    .eq('status', 'approved')
+    .in('status', ['approved', 'active'])
         .eq('is_archived', false)
 
     .order('reg_close', { ascending: true })
